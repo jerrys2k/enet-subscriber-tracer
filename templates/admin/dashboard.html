@@ -63,7 +63,8 @@
           <a href="/admin" class="px-4 py-2 text-sm font-medium transition-colors {{ 'text-white bg-white/10 rounded-lg' if not tab or tab == 'lookup' else 'text-slate-300 hover:text-white' }}">
             Lookup
           </a>
-          <a href="/admin?tab=live" class="px-4 py-2 text-sm font-medium transition-colors {{ 'text-white bg-white/10 rounded-lg' if tab == 'live' else 'text-slate-300 hover:text-white' }}">
+          {% if session.role in ['admin', 'superadmin'] %}
+          <a href="/admin?tab=audit" class="px-4 py-2 text-sm font-medium transition-colors {{ 'text-white bg-white/10 rounded-lg' if tab == 'audit' else 'text-slate-300 hover:text-white' }}">
             Audit Log
           </a>
           <a href="/admin?tab=prefix" class="px-4 py-2 text-sm font-medium transition-colors {{ 'text-white bg-white/10 rounded-lg' if tab == 'prefix' else 'text-slate-300 hover:text-white' }}">
@@ -72,7 +73,6 @@
           <a href="/admin/ept" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors">
             EPT
           </a>
-          {% if session.role in ['admin', 'superadmin'] %}
           <a href="/admin?tab=users" class="px-4 py-2 text-sm font-medium transition-colors {{ 'text-white bg-white/10 rounded-lg' if tab == 'users' else 'text-slate-300 hover:text-white' }}">
             Users
           </a>
@@ -99,7 +99,8 @@
         <a href="/admin" class="px-3 py-1.5 text-sm font-medium rounded-lg whitespace-nowrap transition {{ 'bg-white/10 text-white' if not tab or tab == 'lookup' else 'text-slate-400' }}">
           Lookup
         </a>
-        <a href="/admin?tab=live" class="px-3 py-1.5 text-sm font-medium rounded-lg whitespace-nowrap transition {{ 'bg-white/10 text-white' if tab == 'live' else 'text-slate-400' }}">
+        {% if session.role in ['admin', 'superadmin'] %}
+        <a href="/admin?tab=audit" class="px-3 py-1.5 text-sm font-medium rounded-lg whitespace-nowrap transition {{ 'bg-white/10 text-white' if tab == 'audit' else 'text-slate-400' }}">
           Audit
         </a>
         <a href="/admin?tab=prefix" class="px-3 py-1.5 text-sm font-medium rounded-lg whitespace-nowrap transition {{ 'bg-white/10 text-white' if tab == 'prefix' else 'text-slate-400' }}">
@@ -108,7 +109,6 @@
         <a href="/admin/ept" class="px-3 py-1.5 text-sm font-medium rounded-lg whitespace-nowrap text-slate-400">
           EPT
         </a>
-        {% if session.role in ['admin', 'superadmin'] %}
         <a href="/admin?tab=users" class="px-3 py-1.5 text-sm font-medium rounded-lg whitespace-nowrap transition {{ 'bg-white/10 text-white' if tab == 'users' else 'text-slate-400' }}">
           Users
         </a>
