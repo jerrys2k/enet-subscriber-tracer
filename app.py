@@ -57,7 +57,7 @@ class Config:
     DB_CONFIG = {
         "dbname": "tracedb",
         "user": "enet",
-        "password": "${DB_PASSWORD}",
+        "password": os.environ.get("DB_PASSWORD", "changeme"),
         "host": "localhost",
         "port": "5432"
     }

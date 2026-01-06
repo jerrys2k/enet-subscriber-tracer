@@ -1,4 +1,7 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 import sqlite3
 import psycopg2
 import pandas as pd
@@ -17,7 +20,7 @@ _LAST_REFRESH = None
 DB_CONFIG = {
     "dbname": "tracedb",
     "user": "enet",
-    "password": "${DB_PASSWORD}",
+    "password": os.environ.get("DB_PASSWORD", "changeme"),
     "host": "localhost",
     "port": "5432"
 }

@@ -8,6 +8,8 @@ Optimized RADIUS Parser
 
 import re
 import os
+from dotenv import load_dotenv
+load_dotenv()
 import sys
 import logging
 from datetime import datetime
@@ -26,7 +28,7 @@ logger = logging.getLogger(__name__)
 DB_CONFIG = {
     "dbname": "tracedb",
     "user": "enet", 
-    "password": "${DB_PASSWORD}",
+    "password": os.environ.get("DB_PASSWORD", "changeme"),
     "host": "localhost",
     "port": "5432"
 }
