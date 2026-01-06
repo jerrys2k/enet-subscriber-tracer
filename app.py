@@ -21,7 +21,8 @@ from flask import (
     url_for,
     send_file,
     send_from_directory,
-    Response
+    Response,
+    flash
 )
 import pandas as pd
 import requests
@@ -1221,7 +1222,7 @@ def admin_dashboard():
 
 @app.route("/export_kmz")
 def export_kmz():
-    from flask import send_file, request
+    from flask import send_file, request, flash
     import simplekml
     from geopy.distance import distance
     import os
