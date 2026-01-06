@@ -1,0 +1,66 @@
+<!-- templates/auth/login.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Same head content as before -->
+</head>
+<body class="bg-gray-50">
+  <div class="min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white rounded-xl shadow-lg overflow-hidden">
+      <div class="bg-enet p-6 text-white">
+        <div class="flex items-center justify-center space-x-3">
+          <img src="{{ url_for('static', filename='enet_logo.png') }}" alt="ENet Logo" class="h-10">
+          <h1 class="text-xl font-bold">Admin Portal</h1>
+        </div>
+      </div>
+
+      <div class="p-6">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="mb-4 p-3 rounded-lg bg-{{ category }}-100 text-{{ category }}-700">
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('auth.login') }}" class="space-y-4">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div>
+            <label for="username" class="block text-sm font-medium text-gray-700 mb-1">
+              Username
+            </label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i class="fas fa-user text-gray-400"></i>
+              </div>
+              <input type="text" id="username" name="username" required
+                     class="pl-10 w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-enet focus:border-enet">
+            </div>
+          </div>
+
+          <div>
+            <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
+              Password
+            </label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i class="fas fa-lock text-gray-400"></i>
+              </div>
+              <input type="password" id="password" name="password" required
+                     class="pl-10 w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-enet focus:border-enet">
+            </div>
+          </div>
+
+          <button type="submit" 
+                  class="w-full bg-enet hover:bg-orange-600 text-white py-2 px-4 rounded-md font-medium transition-colors">
+            <i class="fas fa-sign-in-alt mr-2"></i> Sign In
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

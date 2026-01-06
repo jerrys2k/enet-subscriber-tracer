@@ -1,0 +1,148 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+import re
+import sqlite3
+from Tools.cell_mapper import decode_location_info
+from Tools.tower_index_loader import load_tower_index
+
+LOG_DIR = "/var/log/freeradius/radacct"
+DETAIL_PREFIX = "detail-"
+DB_PATH = "logs/trace.db"
+
+entry_pattern = re.compile(r'(\S+)\s+=\s+"?([^"]+)"?')
+tower_index = load_tower_index()
+
+
+def get_all_log_files():
+    files = []
+    for root, _, filenames in os.walk(LOG_DIR):
+        for fname in filenames:
+            if fname.startswith(DETAIL_PREFIX):
+                files.append(os.path.join(root, fname))
+    return sorted(files)
+
+
+def entry_generator(log_path):
+    with open(log_path) as f:
+        buffer = []
+        for line in f:
+            line = line.strip()
+            if not line:
+                if buffer:
+                    yield buffer
+                    buffer = []
+                continue
+            buffer.append(line)
+        if buffer:
+            yield buffer
+
+
+def parse_entry(lines):
+    entry = {}
+    for line in lines:
+        match = entry_pattern.match(line)
+        if match:
+            k, v = match.groups()
+            entry[k] = v
+    return entry
+
+
+def insert_if_missing(conn, msisdn, imsi, enodeb, cell_id, tower_name, lat, lon, timestamp):
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT id FROM radius_matches
+        WHERE msisdn = ? AND enodeb_id = ? AND cell_id = ? AND timestamp = ?
+    """, (msisdn, enodeb, cell_id, timestamp))
+    if cursor.fetchone():
+        return False
+
+    cursor.execute("""
+        INSERT INTO radius_matches
+        (msisdn, imsi, enodeb_id, cell_id, tower_name, lat, lon, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (msisdn, imsi, enodeb, cell_id, tower_name, lat, lon, timestamp))
+    conn.commit()
+    return True
+
+
+def update_latest_trace(conn, msisdn):
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT msisdn, imsi, enodeb_id, cell_id, tower_name, lat, lon, MAX(timestamp)
+        FROM radius_matches
+        WHERE msisdn = ?
+        GROUP BY msisdn
+    """, (msisdn,))
+    row = cursor.fetchone()
+    if not row:
+        return
+    msisdn, imsi, enodeb_id, cell_id, tower_name, lat, lon, timestamp = row
+    cursor.execute("""
+        REPLACE INTO latest_traces (msisdn, imsi, enodeb_id, cell_id, tower_name, lat, lon, timestamp, source)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (msisdn, imsi, enodeb_id, cell_id, tower_name, lat, lon, timestamp, "backfill"))
+    conn.commit()
+
+
+def backfill():
+    conn = sqlite3.connect(DB_PATH)
+    total_inserted = 0
+    total_processed = 0
+
+    for log_file in get_all_log_files():
+        print(f"📂 Scanning: {log_file}")
+
+        for lines in entry_generator(log_file):
+            entry = parse_entry(lines)
+
+            msisdn = entry.get("Calling-Station-Id")
+            imsi = entry.get("3GPP-IMSI") or entry.get("User-Name")
+            raw_loc = entry.get("3GPP-User-Location-Info")
+            timestamp = entry.get("Event-Timestamp")
+
+            if not (msisdn and raw_loc and timestamp):
+                print(f"⛔ Skipped - missing: msisdn={msisdn}, location={raw_loc}, timestamp={timestamp}")
+                continue
+
+            decoded = decode_location_info(raw_loc)
+            if not decoded or len(decoded) < 2:
+                print(f"⛔ Skipped - failed to decode: {raw_loc}")
+                continue
+
+            enodeb, cell_id = decoded[0], decoded[1]
+
+            if (enodeb, cell_id) not in tower_index:
+                print(f"⛔ Skipped - unknown cell: eNodeB ID={enodeb}, Cell ID={cell_id} (decoded from {raw_loc})")
+                continue
+
+            tower = tower_index[(enodeb, cell_id)]
+
+            inserted = insert_if_missing(
+                conn,
+                msisdn,
+                imsi,
+                enodeb,
+                cell_id,
+                tower["tower_name"],
+                tower["lat"],
+                tower["lon"],
+                timestamp
+            )
+
+            total_processed += 1
+            if inserted:
+                total_inserted += 1
+                update_latest_trace(conn, msisdn)
+
+            if total_processed % 500 == 0:
+                print(f"→ {total_processed} processed, {total_inserted} inserted...")
+
+    conn.close()
+    print(f"✅ Backfill complete: {total_processed} entries checked, {total_inserted} inserted.")
+
+
+if __name__ == "__main__":
+    backfill()o
+    

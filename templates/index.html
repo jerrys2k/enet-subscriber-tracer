@@ -1,0 +1,394 @@
+<!-- ✅ FILE: templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ENet MSISDN Checker</title>
+  
+  <!-- ✅ STYLESHEETS & ASSETS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="icon" href="/static/favicon.ico">
+  
+  <style>
+    /* ====================== BASE STYLES ====================== */
+    :root {
+      --primary: #f7941d;
+      --primary-dark: #e78300;
+      --text: #333333;
+      --light-bg: #f7f7f7;
+      --white: #ffffff;
+      --border: #e0e0e0;
+      --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      line-height: 1.6;
+      color: var(--text);
+      background: var(--light-bg);
+    }
+    
+    /* ====================== LAYOUT COMPONENTS ====================== */
+    .header {
+      background: var(--primary);
+      padding: 20px;
+      color: var(--white);
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: 600;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .container {
+      max-width: 700px;
+      margin: 30px auto;
+      padding: 0 15px;
+    }
+    
+    /* ====================== FORM ELEMENTS ====================== */
+    .search-card {
+      background: var(--white);
+      border-radius: 8px;
+      padding: 25px;
+      margin-bottom: 25px;
+      box-shadow: var(--card-shadow);
+    }
+    
+    .search-title {
+      font-size: 1.25rem;
+      margin-bottom: 20px;
+      color: var(--primary);
+      text-align: center;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 15px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 1rem;
+      transition: all 0.3s;
+    }
+    
+    input[type="text"]:focus {
+      border-color: var(--primary);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(247, 148, 29, 0.2);
+    }
+    
+    .btn {
+      display: block;
+      width: 100%;
+      background: var(--primary);
+      color: var(--white);
+      border: none;
+      padding: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s;
+      text-align: center;
+    }
+    
+    .btn:hover {
+      background: var(--primary-dark);
+    }
+    
+    /* ====================== RESULT DISPLAY ====================== */
+    .result-card {
+      background: var(--white);
+      border-radius: 8px;
+      padding: 25px;
+      margin-bottom: 20px;
+      box-shadow: var(--card-shadow);
+    }
+    
+    .result-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .msisdn {
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin-right: 10px;
+    }
+    
+    .provider-badge {
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    
+    .info-section {
+      margin-bottom: 20px;
+    }
+    
+    .section-title {
+      font-size: 1.1rem;
+      color: var(--primary);
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .section-title i {
+      margin-right: 10px;
+    }
+    
+    .info-item {
+      margin-bottom: 12px;
+      display: flex;
+      align-items: flex-start;
+    }
+    
+    .info-item i {
+      width: 25px;
+      color: var(--primary);
+      margin-top: 3px;
+    }
+    
+    .info-label {
+      font-weight: 600;
+      margin-right: 5px;
+    }
+    
+    /* ====================== RESPONSIVE ADJUSTMENTS ====================== */
+    @media (max-width: 768px) {
+      .header {
+        font-size: 1.3rem;
+        padding: 15px;
+      }
+      
+      .container {
+        margin: 20px auto;
+      }
+      
+      .msisdn {
+        font-size: 1.2rem;
+      }
+      
+      .search-card,
+      .result-card {
+        padding: 20px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .header {
+        font-size: 1.1rem;
+      }
+      
+      .msisdn {
+        font-size: 1.1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- ✅ PAGE HEADER -->
+  <header class="header">
+    <i class="fas fa-mobile-alt"></i> ENet MSISDN Lookup Portal
+  </header>
+
+  <!-- ✅ MAIN CONTENT CONTAINER -->
+  <div class="container">
+    <!-- ✅ SEARCH CARD -->
+    <div class="search-card">
+      <h2 class="search-title">
+        <i class="fas fa-search"></i> Check Number Portability
+      </h2>
+      
+      <form method="GET" action="/index" class="form-group">
+        <input type="text" 
+               name="number" 
+               placeholder="Enter 7-digit number" 
+               pattern="\d{7}" 
+               maxlength="7" 
+               required
+               title="Please enter exactly 7 digits">
+        <button type="submit" class="btn">
+          <i class="fas fa-search"></i> Lookup Number
+        </button>
+      </form>
+    </div>
+
+    {% if result %}
+      <!-- ✅ RESULTS DISPLAY -->
+      <div class="result-card">
+        <!-- ✅ NUMBER HEADER -->
+        <div class="result-header">
+          <div class="msisdn">
+            <i class="fas fa-phone-alt"></i> {{ result.number }}
+          </div>
+          {% if result.assigned_to %}
+            <div class="provider-badge">{{ result.assigned_to|safe }}</div>
+          {% endif %}
+        </div>
+        
+        <div class="info-item">
+          <i class="fas fa-network-wired"></i>
+          <span>
+            <span class="info-label">Original Provider:</span> 
+            {{ result.original_provider|safe }}
+          </span>
+        </div>
+      </div>
+
+      <!-- ✅ CUSTOMER INFORMATION -->
+      {% if result.customer_info and not result.customer_info.error %}
+        <div class="result-card">
+          <h3 class="section-title">
+            <i class="fas fa-user"></i> Customer Information
+          </h3>
+          
+          <div class="info-item">
+            <i class="fas fa-user-circle"></i>
+            <span>
+              <span class="info-label">Name:</span> 
+              {{ result.customer_info.first_name }} {{ result.customer_info.last_name }}
+            </span>
+          </div>
+          
+          <div class="info-item">
+            <i class="fas fa-envelope"></i>
+            <span>
+              <span class="info-label">Email:</span> 
+              {{ result.customer_info.email or 'Not available' }}
+            </span>
+          </div>
+          
+          <div class="info-item">
+            <i class="fas fa-map-marker-alt"></i>
+            <span>
+              <span class="info-label">Address:</span> 
+              {{ result.customer_info.address or 'Not available' }}
+            </span>
+          </div>
+          
+          <div class="info-item">
+            <i class="fas fa-id-card"></i>
+            <span>
+              <span class="info-label">Type:</span> 
+              {{ result.customer_info.type or 'Not available' }}
+            </span>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- ✅ PORTING INFORMATION -->
+      <div class="result-card">
+        <h3 class="section-title">
+          <i class="fas fa-exchange-alt"></i> Porting Details
+        </h3>
+        
+        {% if result.nmp_porting %}
+          <div class="info-item">
+            <i class="fas fa-route"></i>
+            <span>
+              <span class="info-label">Route:</span> 
+              {{ result.nmp_porting.from|safe }} → {{ result.nmp_porting.to|safe }}
+            </span>
+          </div>
+          
+          <div class="info-item">
+            <i class="fas fa-calendar-day"></i>
+            <span>
+              <span class="info-label">Date:</span> 
+              {{ result.nmp_porting.date }}
+            </span>
+          </div>
+          
+          <div class="info-item">
+            <i class="fas fa-database"></i>
+            <span>
+              <span class="info-label">Source:</span> 
+              {{ result.nmp_porting.source }}
+            </span>
+          </div>
+        {% else %}
+          <div class="info-item">
+            <i class="fas fa-info-circle"></i>
+            <span>No live porting information available</span>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- ✅ HISTORICAL RECORD -->
+      <div class="result-card">
+        <h3 class="section-title">
+          <i class="fas fa-history"></i> Historical Record
+        </h3>
+        
+        {% if result.porting_history.ported_from != "Unknown" %}
+          <div class="info-item">
+            <i class="fas fa-route"></i>
+            <span>
+              <span class="info-label">Port Route:</span> 
+              {{ result.porting_history.ported_from|safe }} → {{ result.porting_history.ported_to|safe }}
+            </span>
+          </div>
+          
+          <div class="info-item">
+            <i class="fas fa-clock"></i>
+            <span>
+              <span class="info-label">Port Date:</span> 
+              {{ result.porting_history.ported_on }}
+            </span>
+          </div>
+        {% else %}
+          <div class="info-item">
+            <i class="fas fa-info-circle"></i>
+            <span>No historical porting record found</span>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- ✅ OPTIONAL JAVASCRIPT ENHANCEMENTS -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Auto-focus the search input on page load
+      const searchInput = document.querySelector('input[name="number"]');
+      if (searchInput) {
+        searchInput.focus();
+        
+        // Clear the input when escaping
+        searchInput.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape') {
+            this.value = '';
+          }
+        });
+      }
+      
+      // Add animation to result cards when they appear
+      const resultCards = document.querySelectorAll('.result-card');
+      resultCards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        card.style.transition = 'all 0.4s ease-out';
+        
+        setTimeout(() => {
+          card.style.opacity = '1';
+          card.style.transform = 'translateY(0)';
+        }, 100 + (index * 100));
+      });
+    });
+  </script>
+</body>
+</html>

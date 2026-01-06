@@ -1,0 +1,33 @@
+#!/bin/bash
+
+echo "📦 Staging all changes..."
+git add .
+
+# Prompt for commit message
+read -p "📝 Enter commit message: " commit_message
+
+if [[ -z "$commit_message" ]]; then
+  echo "❌ Commit message cannot be empty."
+  exit 1
+fi
+
+# Commit
+echo "✅ Committing..."
+git commit -m "$commit_message"
+
+# Push to main
+echo "🚀 Pushing to origin/main..."
+git push origin main
+
+# Prompt for tag (optional)
+read -p "🏷️  Tag this commit? (e.g., v1.0.1, or press Enter to skip): " tag_name
+
+if [[ ! -z "$tag_name" ]]; then
+  git tag "$tag_name"
+  git push origin "$tag_name"
+  echo "✅ Tag $tag_name pushed."
+else
+  echo "🏷️  No tag applied."
+fi
+
+echo "✅ Done."

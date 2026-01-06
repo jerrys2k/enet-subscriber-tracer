@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ENet MSISDN Checker</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { font-family: Arial; margin: 0; background: #f7f7f7; }
+    header { background: #f7941d; padding: 15px; color: white; font-size: 20px; text-align: center; }
+    .container { max-width: 700px; margin: 30px auto; background: white; padding: 20px; box-shadow: 0 0 10px #ccc; }
+    .row-block { margin-bottom: 15px; }
+    input[type=text], button { width: 100%; padding: 10px; margin-bottom: 10px; }
+    button { background-color: #f7941d; color: white; border: none; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<header>
+  ENet MSISDN Lookup Portal
+</header>
+
+<div class="container">
+  <form method="GET" action="/index">
+    <input type="text" name="number" placeholder="Enter 7-digit number" maxlength="7" required>
+    <button type="submit">Lookup</button>
+  </form>
+
+  {% if result %}
+    <div class="row-block"><strong>MSISDN:</strong> {{ result.number }}</div>
+    {% if result.customer_info %}
+    <div class="row-block">
+      <strong>👤 Customer:</strong> {{ result.customer_info.first_name }} {{ result.customer_info.last_name }}<br>
+      📧 Email: {{ result.customer_info.email }}<br>
+      🏠 Address: {{ result.customer_info.address }}<br>
+      🆔 Type: {{ result.customer_info.type }}<br>
+      🎂 DOB: {{ result.customer_info.dob }}<br>
+      🚻 Gender: {{ result.customer_info.gender }}
+    </div>
+    {% endif %}
+    {% if result.nmp_porting %}
+    <div class="row-block">
+      <strong>📦 NMP Porting:</strong><br>
+      From: {{ result.nmp_porting.from|safe }} → {{ result.nmp_porting.to|safe }}
+      📅 Date: {{ result.nmp_porting.date }}
+    </div>
+    {% endif %}
+    <div class="row-block">
+      <strong>🌐 Porting History:</strong><br>
+      {{ result.porting_history.ported_from }} → {{ result.porting_history.ported_to }} on {{ result.porting_history.ported_on }}
+    </div>
+  {% endif %}
+</div>
+
+</body>
+</html>

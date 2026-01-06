@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ENet Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            enet: '#f7941d',
+            gtt: '#1d4ed8',
+            digicel: '#dc2626',
+            inactive: '#6b7280',
+            lea: '#10b981'
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="icon" href="/static/favicon.ico" />
+  {% macro format_provider(provider) %}
+    {% if provider.lower() == 'digicel' %}
+      <span class="text-digicel font-semibold">Digicel</span>
+    {% elif provider.lower() == 'gtt' %}
+      <span class="text-gtt font-semibold">GTT</span>
+    {% elif provider.lower() == 'enet' %}
+      <span class="text-enet font-semibold">ENet</span>
+    {% else %}
+      <span class="text-gray-600 font-semibold">{{ provider }}</span>
+    {% endif %}
+  {% endmacro %}
+
+  <!-- Add JavaScript for KMZ download and trace refresh -->
+  <script>
+    function downloadKMZ(number) {
+      const button = document.getElementById('kmz-button');
+      const originalText = button.innerHTML;
+      button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Downloading...';
+      button.disabled = true;
+
+      fetch(`/export_kmz?number=${number}`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('KMZ generation failed');
+          }
+          return response.blob();
+        })
+        .then(blob => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `trace_${number}.kmz`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Failed to download KMZ file. Please try again.');
+        })
+        .finally(() => {
+          button.innerHTML = originalText;
+          button.disabled = false;
+        });
+    }
+
+    function refreshTraces() {
+      const button = document.getElementById('refresh-traces');
+      const originalText = button.innerHTML;
+      button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+      button.disabled = true;
+
+      fetch('/admin?tab=live')
+        .then(response => response.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          const newTable = doc.querySelector('.traces-table');
+          if (newTable) {
+            document.querySelector('.traces-table').innerHTML = newTable.innerHTML;
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Failed to refresh traces. Please try again.');
+        })
+        .finally(() => {
+          button.innerHTML = originalText;
+          button.disabled = false;
+        });
+    }
+  </script>
+</head>
+
+<body class="bg-gray-100 text-gray-800">
+  <!-- 🌐 Header with Role - Mobile Optimized -->
+  <header class="bg-orange-500 shadow p-3 flex items-center justify-between">
+    <div class="flex items-center">
+      <img src="{{ url_for('static', filename='enet_logo.png') }}" class="h-8 mr-2" alt="ENet Logo" />
+      <h1 class="text-lg font-bold text-white">ENet Dashboard</h1>
+    </div>
+    <div class="flex items-center gap-2">
+      {% if session.role in ['admin', 'superadmin'] %}
+        <span class="bg-white text-orange-600 text-xs font-semibold px-2 py-0.5 rounded-full">Admin</span>
+      {% elif session['role'] == 'viewer' %}
+        <span class="bg-white text-blue-600 text-xs font-semibold px-2 py-0.5 rounded-full">Viewer</span>
+      {% endif %}
+      <a href="/logout" class="text-white text-xs font-semibold hover:underline">
+        <i class="fas fa-sign-out-alt mr-1"></i> Logout
+      </a>
+    </div>
+  </header>
+
+  <!-- 📂 Navigation Tabs - Mobile Optimized -->
+  <nav class="bg-orange-400 flex overflow-x-auto text-white font-semibold py-2 px-1">
+    <a href="/admin?tab=lookup" class="hover:bg-orange-500 px-3 py-1 rounded text-sm whitespace-nowrap {% if tab == 'lookup' %}bg-orange-600{% endif %}">🔍 Lookup</a>
+    {% if session.role in ['admin', 'superadmin'] %}
+      <a href="/admin?tab=prefix" class="hover:bg-orange-500 px-3 py-1 rounded text-sm whitespace-nowrap {% if tab == 'prefix' %}bg-orange-600{% endif %}">🛠 Prefix</a>
+      <a href="/admin?tab=live" class="hover:bg-orange-500 px-3 py-1 rounded text-sm whitespace-nowrap {% if tab == 'live' %}bg-orange-600{% endif %}">⚡ Live</a>
+      <a href="/admin?tab=metrics" class="hover:bg-orange-500 px-3 py-1 rounded text-sm whitespace-nowrap {% if tab == 'metrics' %}bg-orange-600{% endif %}">📊 Metrics</a>
+      <a href="/admin/ept" class="hover:bg-orange-500 px-3 py-1 rounded text-sm whitespace-nowrap">📡 EPT</a>
+      <a href="/users" class="hover:bg-orange-500 px-3 py-1 rounded text-sm whitespace-nowrap">👥 Users</a>
+    {% endif %}
+    {% if session.role == 'superadmin' %}
+      <a href="/audit" class="hover:bg-orange-500 px-3 py-1 rounded text-sm whitespace-nowrap">📜 Audit</a>
+    {% endif %}
+  </nav>
+
+  <main class="max-w-6xl mx-auto p-4 md:p-6 bg-white shadow-xl rounded-lg">
+    <!-- 📌 Lookup Tab -->
+    {% if tab == 'lookup' %}
+      {% if result %}
+        <div class="mb-4 border-l-4 pl-3 {% if result.current_provider == 'ENet' %}border-enet{% elif result.current_provider == 'GTT' %}border-gtt{% elif result.current_provider == 'Digicel' %}border-digicel{% else %}border-gray-400{% endif %}">
+          <div class="flex flex-col sm:flex-row justify-between items-start gap-2">
+            <h2 class="text-base font-bold">
+              {% if imsi %}
+                IMSI: <span class="text-lg font-extrabold text-lea">{{ imsi }}</span>
+              {% else %}
+                MSISDN: <span class="text-lg font-extrabold {% if result.current_provider == 'ENet' %}text-enet{% elif result.current_provider == 'GTT' %}text-gtt{% elif result.current_provider == 'Digicel' %}text-digicel{% else %}text-gray-600{% endif %}">
+                  592{{ number }}
+                </span>
+              {% endif %}
+              <span class="ml-2 text-xs font-normal {% if result.source == 'live' %}bg-green-100 text-green-800{% else %}bg-blue-100 text-blue-800{% endif %} px-2 py-0.5 rounded">
+                {{ result.source|upper }} DATA
+              </span>
+            </h2>
+            <div class="flex gap-2">
+              {% if pdf_report_available %}
+              <a href="/pdf_report?number={{ number }}" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs flex items-center">
+                <i class="fas fa-file-pdf mr-1"></i> PDF
+              </a>
+              {% endif %}
+              {% if result.location and not imsi %}
+              <a href="/export_kmz?number={{ number }}" target="_blank" 
+                 class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs flex items-center">
+                <i class="fas fa-download mr-1"></i> KMZ
+              </a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Number Lookup Form - Mobile Optimized -->
+      <form method="GET" action="/admin" class="mb-4">
+        <input type="hidden" name="tab" value="lookup">
+        <label class="block text-xs md:text-sm font-medium text-gray-700 mb-1">Enter 7-digit number</label>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <input type="text" name="number" value="{{ number or '' }}" maxlength="7" required 
+                 class="flex-1 px-3 py-1.5 border rounded focus:outline-none focus:ring-2 focus:ring-orange-400 text-sm" />
+          <button type="submit" class="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-4 py-1.5 rounded text-sm">
+            Check
+          </button>
+        </div>
+      </form>
+
+      <!-- 🛰 IMSI Lookup (LEA) - Mobile Optimized -->
+      <form method="GET" action="/admin" class="mb-4">
+        <input type="hidden" name="tab" value="lookup">
+        <label class="block text-xs md:text-sm font-medium text-gray-700 mb-1">Or enter IMSI (LEA only)</label>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <input type="text" name="imsi" value="{{ imsi or '' }}" maxlength="15"
+                 class="flex-1 px-3 py-1.5 border rounded focus:outline-none focus:ring-2 focus:ring-lea text-sm" />
+          <button type="submit" class="bg-lea hover:bg-green-700 text-white font-semibold px-4 py-1.5 rounded text-sm">
+            <i class="fas fa-satellite-dish mr-1"></i> Lookup
+          </button>
+        </div>
+      </form>
+
+      {% if result %}
+        <!-- 👤 Customer Info - Mobile Optimized -->
+        <div class="space-y-4">
+          {% if result.customer_info %}
+          <div class="bg-gray-50 p-3 rounded shadow">
+            <h3 class="font-semibold text-base mb-1"><i class="fas fa-user"></i> Customer Info</h3>
+            <p class="text-xs md:text-sm"><strong>Name:</strong> {{ result.customer_info.name or (result.customer_info.first_name ~ " " ~ result.customer_info.last_name) }}</p>
+            {% if result.customer_info.email and result.customer_info.email != "None" %}<p class="text-xs md:text-sm"><strong>Email:</strong> {{ result.customer_info.email }}</p>{% endif %}
+            <p class="text-xs md:text-sm"><strong>Address:</strong> {{ result.customer_info.address }}</p>
+            {% if imsi %}
+              <p class="text-xs md:text-sm"><strong>Linked MSISDN:</strong> 592{{ result.customer_info.msisdn }}</p>
+            {% endif %}
+          </div>
+          {% endif %}
+
+          <!-- 🚨 Location Error -->
+          {% if location_error %}
+          <div class="bg-red-50 p-2 rounded text-red-700 text-xs md:text-sm">
+            <i class="fas fa-exclamation-circle mr-1"></i> {{ location_error }}
+          </div>
+          {% endif %}
+
+          <!-- 🔴 LIVE SESSION from Sandvine -->
+          {% if result.live_session %}
+          <div class="bg-red-50 border-2 border-red-400 p-3 rounded shadow mb-4">
+            <h3 class="font-semibold text-base mb-2 text-red-700">
+              <i class="fas fa-broadcast-tower animate-pulse"></i> 🔴 LIVE SESSION (Real-Time)
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="space-y-1">
+                <p class="text-xs md:text-sm"><strong>Status:</strong> <span class="text-green-600 font-bold">● ONLINE</span></p>
+                <p class="text-xs md:text-sm"><strong>IP Address:</strong> {{ result.live_session.ip_address }}</p>
+                <p class="text-xs md:text-sm"><strong>IMSI:</strong> {{ result.live_session.imsi }}</p>
+                <p class="text-xs md:text-sm"><strong>IMEI:</strong> {{ result.live_session.imei }}</p>
+                {% if result.live_session.device_vendor %}
+                <p class="text-xs md:text-sm"><strong>Device:</strong> {{ result.live_session.device_vendor }} {{ result.live_session.device_name }}</p>
+                {% endif %}
+                <p class="text-xs md:text-sm"><strong>Network:</strong> <span class="text-blue-600">{{ result.live_session.rat_type or 'Unknown' }}</span></p>
+                {% if result.live_session.is_roaming %}
+                <p class="text-xs md:text-sm"><strong>Roaming:</strong> <span class="text-red-600 font-bold">⚠️ YES</span></p>
+                {% endif %}
+              </div>
+              <div class="space-y-1">
+                <p class="text-xs md:text-sm"><strong>Session Start:</strong> {{ result.live_session.session_start_formatted or result.live_session.session_start }}</p>
+                <p class="text-xs md:text-sm"><strong>Duration:</strong> <span class="text-purple-600">{{ result.live_session.session_duration or 'Unknown' }}</span></p>
+                <p class="text-xs md:text-sm"><strong>TAC:</strong> {{ result.live_session.tac or 'N/A' }}</p>
+              </div>
+              <div class="space-y-1">
+                {% if result.live_session.cell_details %}
+                <p class="text-xs md:text-sm"><strong>Site:</strong> {{ result.live_session.cell_details.enodeb_name }}</p>
+                <p class="text-xs md:text-sm"><strong>Cell:</strong> {{ result.live_session.cell_details.cell_name }}</p>
+                <p class="text-xs md:text-sm"><strong>eNodeB/Cell:</strong> {{ result.live_session.enodeb_id }} / {{ result.live_session.cell_id }}</p>
+                <p class="text-xs md:text-sm"><strong>Azimuth:</strong> {{ result.live_session.cell_details.azimuth }}° ({{ result.live_session.azimuth_direction }})</p>
+                <p class="text-xs md:text-sm"><strong>Technology:</strong> {{ result.live_session.cell_details.technology }}</p>
+                <p class="text-xs md:text-sm"><strong>Location:</strong> {{ "%.6f"|format(result.live_session.cell_details.latitude) }}, {{ "%.6f"|format(result.live_session.cell_details.longitude) }}</p>
+                {% else %}
+                <p class="text-xs md:text-sm"><strong>Site:</strong> {{ result.live_session.site_name }}</p>
+                <p class="text-xs md:text-sm"><strong>eNodeB:</strong> {{ result.live_session.enodeb_id }}</p>
+                <p class="text-xs md:text-sm"><strong>Cell ID:</strong> {{ result.live_session.cell_id }}</p>
+                {% endif %}
+              </div>
+            </div>
+            {% if result.live_session.cell_details %}
+            <div class="mt-2 pt-2 border-t border-red-200 space-y-2">
+              <div class="flex flex-wrap gap-2">
+                <a href="https://www.google.com/maps?q={{ result.live_session.cell_details.latitude }},{{ result.live_session.cell_details.longitude }}&z=18" 
+                   target="_blank" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs inline-flex items-center">
+                   <i class="fas fa-map-marker-alt mr-1"></i> Google Maps
+                </a>
+                <button onclick="toggleSectorMap()" 
+                   class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs inline-flex items-center">
+                   <i class="fas fa-broadcast-tower mr-1"></i> Show Cell Sector
+                </button>
+              </div>
+              <!-- Sector Map Container -->
+              <div id="sectorMapContainer" class="hidden mt-2">
+                <div id="sectorMap" style="height: 350px; width: 100%; border-radius: 8px; border: 2px solid #ef4444;"></div>
+              </div>
+            </div>
+            <script>
+              var sectorMapInit = false;
+              var sectorMap = null;
+              function toggleSectorMap() {
+                var container = document.getElementById('sectorMapContainer');
+                container.classList.toggle('hidden');
+                if (!sectorMapInit && !container.classList.contains('hidden')) {
+                  initSectorMap(
+                    {{ result.live_session.cell_details.latitude }},
+                    {{ result.live_session.cell_details.longitude }},
+                    {{ result.live_session.cell_details.azimuth or 0 }},
+                    "{{ result.live_session.cell_details.cell_name }}",
+                    "{{ result.live_session.cell_details.technology }}"
+                  );
+                  sectorMapInit = true;
+                }
+              }
+              function initSectorMap(lat, lon, azimuth, cellName, tech) {
+                // Initialize Leaflet map
+                sectorMap = L.map('sectorMap').setView([lat, lon], 16);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                  attribution: '© OpenStreetMap'
+                }).addTo(sectorMap);
+                
+                // Tower marker
+                var towerIcon = L.divIcon({
+                  html: '<div style="background:#ef4444;color:white;padding:4px 8px;border-radius:4px;font-size:10px;white-space:nowrap;"><i class="fas fa-broadcast-tower"></i> ' + cellName + '</div>',
+                  className: 'tower-marker',
+                  iconAnchor: [50, 10]
+                });
+                L.marker([lat, lon], {icon: towerIcon}).addTo(sectorMap);
+                
+                // Draw sector cone
+                var beamWidth = 65; // degrees
+                var radius = 800; // meters
+                var startAngle = azimuth - beamWidth/2;
+                var endAngle = azimuth + beamWidth/2;
+                
+                // Create sector polygon
+                var points = [[lat, lon]];
+                for (var angle = startAngle; angle <= endAngle; angle += 5) {
+                  var rad = angle * Math.PI / 180;
+                  var dLat = (radius/111320) * Math.cos(rad);
+                  var dLon = (radius/(111320*Math.cos(lat*Math.PI/180))) * Math.sin(rad);
+                  points.push([lat + dLat, lon + dLon]);
+                }
+                points.push([lat, lon]);
+                
+                var sector = L.polygon(points, {
+                  color: '#ef4444',
+                  fillColor: '#ef4444',
+                  fillOpacity: 0.3,
+                  weight: 2
+                }).addTo(sectorMap);
+                
+                // Add direction arrow
+                var arrowRad = azimuth * Math.PI / 180;
+                var arrowDist = radius * 0.6;
+                var arrowLat = lat + (arrowDist/111320) * Math.cos(arrowRad);
+                var arrowLon = lon + (arrowDist/(111320*Math.cos(lat*Math.PI/180))) * Math.sin(arrowRad);
+                
+                var dirLabel = L.divIcon({
+                  html: '<div style="background:rgba(0,0,0,0.7);color:white;padding:2px 6px;border-radius:3px;font-size:11px;">' + azimuth + '° ' + getDirection(azimuth) + '</div>',
+                  className: 'dir-label'
+                });
+                L.marker([arrowLat, arrowLon], {icon: dirLabel}).addTo(sectorMap);
+                
+                // Legend
+                var legend = L.control({position: 'bottomright'});
+                legend.onAdd = function(map) {
+                  var div = L.DomUtil.create('div', 'legend');
+                  div.innerHTML = '<div style="background:white;padding:8px;border-radius:4px;font-size:11px;box-shadow:0 2px 4px rgba(0,0,0,0.2);">' +
+                    '<strong>📡 ' + cellName + '</strong><br>' +
+                    '<span style="color:#666;">' + tech + '</span><br>' +
+                    '<span style="color:#ef4444;">■</span> Coverage Area (~800m)<br>' +
+                    '<span>Azimuth: ' + azimuth + '° (' + getDirection(azimuth) + ')</span>' +
+                    '</div>';
+                  return div;
+                };
+                legend.addTo(sectorMap);
+              }
+              function getDirection(az) {
+                var dirs = ['N','NE','E','SE','S','SW','W','NW'];
+                return dirs[Math.round(az/45) % 8];
+              }
+            </script>
+            {% endif %}
+          </div>
+          {% endif %}
+
+          <!-- 📍 Historical Tower Location (only shown if no live session) -->
+          {% if result.location and not result.live_session %}
+          <div class="bg-gray-50 p-3 rounded shadow">
+            <h3 class="font-semibold text-base mb-1">
+              <i class="fas fa-map-marker-alt"></i> Last Known Tower Location
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <p class="text-xs md:text-sm"><strong>Tower:</strong> {{ result.location.tower or result.location.tower_name }}</p>
+                <p class="text-xs md:text-sm"><strong>eNodeB ID:</strong> {{ result.location.enodeb_id }}</p>
+                <p class="text-xs md:text-sm"><strong>Cell ID:</strong> {{ result.location.cell_id }}</p>
+                {% if result.location.device_model %}
+                <p class="text-xs md:text-sm"><strong>Device:</strong> {{ result.location.device_model }}</p>
+                {% endif %}
+                {% if result.location.source %}
+                <p class="text-xs md:text-sm"><strong>Source:</strong> {{ result.location.source }}</p>
+                {% endif %}
+              </div>
+              <div>
+                <p class="text-xs md:text-sm"><strong>Latitude:</strong> {{ "%.6f"|format(result.location.lat) }}</p>
+                <p class="text-xs md:text-sm"><strong>Longitude:</strong> {{ "%.6f"|format(result.location.lon) }}</p>
+                <p class="text-xs md:text-sm"><strong>Time:</strong> {{ result.location.timestamp }}</p>
+                {% if result.location.accuracy %}
+                <p class="text-xs md:text-sm"><strong>Accuracy:</strong> {{ result.location.accuracy }}m</p>
+                {% endif %}
+              </div>
+            </div>
+            <div class="mt-2 pt-2 border-t border-gray-200 flex flex-wrap gap-2">
+              <a href="https://earth.google.com/web/search/{{ result.location.lat }},{{ result.location.lon }}" 
+                 target="_blank" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs flex items-center">
+                 <i class="fas fa-globe-americas mr-1"></i> Google Earth
+              </a>
+              <button onclick="downloadKMZ('{{ number }}')" id="kmz-button"
+                      class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs flex items-center">
+                <i class="fas fa-download mr-1"></i> Download KMZ
+              </button>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- 🔁 Porting History - Mobile Optimized -->
+          <div class="bg-gray-50 p-3 rounded shadow">
+            <h3 class="font-semibold text-base mb-1"><i class="fas fa-exchange-alt"></i> Porting History</h3>
+            <p class="text-xs md:text-sm">
+              <strong>Original Provider:</strong> {{ format_provider(result.original_provider) }}
+            </p>
+            <p class="text-xs md:text-sm">
+              <strong>Current Provider:</strong> {{ format_provider(result.current_provider) }}
+            </p>
+            {% if result.has_port_history %}
+            <div class="mt-1 pt-1 border-t border-gray-200">
+              <p class="text-xs md:text-sm">
+                <strong>From:</strong> {{ format_provider(result.porting_history.from) }}
+                → 
+                <strong>To:</strong> {{ format_provider(result.porting_history.to) }}
+              </p>
+              <p class="text-xs md:text-sm"><strong>Date:</strong> {{ result.porting_history.date }}</p>
+            </div>
+            {% endif %}
+          </div>
+          
+          <!-- 📱 Device Information (for IMSI lookups) - Mobile Optimized -->
+          {% if imsi and result.device_info %}
+          <div class="bg-gray-50 p-3 rounded shadow">
+            <h3 class="font-semibold text-base mb-1"><i class="fas fa-mobile-alt"></i> Device Information</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <p class="text-xs md:text-sm"><strong>IMEI:</strong> {{ result.device_info.imei }}</p>
+                <p class="text-xs md:text-sm"><strong>Model:</strong> {{ result.device_info.model }}</p>
+              </div>
+              <div>
+                <p class="text-xs md:text-sm"><strong>Last Seen:</strong> {{ result.device_info.last_seen }}</p>
+                <p class="text-xs md:text-sm"><strong>Status:</strong> 
+                  <span class="{% if result.device_info.status == 'active' %}text-green-600{% else %}text-gray-600{% endif %}">
+                    {{ result.device_info.status|capitalize }}
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      {% endif %}
+    {% endif %}
+
+    <!-- 🛠 Prefix Upload (Admin Only) - Mobile Optimized -->
+    {% if tab == 'prefix' and session.role in ['admin', 'superadmin'] %}
+      <form method="POST" action="/admin/prefix" enctype="multipart/form-data" class="space-y-3">
+        <label class="block text-xs md:text-sm font-medium text-gray-700">Upload Ranges CSV File</label>
+        <input type="file" name="file" accept=".csv" class="w-full border px-3 py-1.5 rounded text-xs md:text-sm" />
+        <button type="submit" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded font-semibold text-sm">
+          Update Prefixes
+        </button>
+      </form>
+      {% if upload_message %}
+        <p class="mt-3 text-green-600 font-medium text-xs md:text-sm">{{ upload_message }}</p>
+      {% endif %}
+    {% endif %}
+
+    <!-- ⚡ Live NMP Tab (Admin Only) - Mobile Optimized -->
+    {% if tab == 'live' and session.role in ['admin', 'superadmin'] %}
+      <div class="space-y-4">
+        <!-- Live Query Form -->
+        <div class="bg-gray-50 p-3 rounded shadow">
+          <h3 class="font-semibold text-base mb-2"><i class="fas fa-bolt"></i> Live NMP Query</h3>
+          <form method="GET" action="/admin">
+            <input type="hidden" name="tab" value="live">
+            <label class="block text-xs md:text-sm font-medium text-gray-700 mb-1">Enter 7-digit number</label>
+            <div class="flex gap-2">
+              <input type="text" name="number" value="{{ number or '' }}" maxlength="7" required 
+                     class="flex-1 px-3 py-1.5 border rounded focus:outline-none focus:ring-2 focus:ring-orange-400 text-sm" />
+              <button type="submit" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded font-semibold text-sm">
+                Query
+              </button>
+            </div>
+          </form>
+          
+          {% if live_result %}
+            <div class="mt-3 pt-3 border-t border-gray-200 space-y-1">
+              <h4 class="font-semibold text-sm">Live Result</h4>
+              <p class="text-xs md:text-sm"><strong>From:</strong> {{ format_provider(live_result.from) }}</p>
+              <p class="text-xs md:text-sm"><strong>To:</strong> {{ format_provider(live_result.to) }}</p>
+              <p class="text-xs md:text-sm"><strong>Date:</strong> {{ live_result.date }}</p>
+            </div>
+          {% elif number %}
+            <p class="mt-2 text-xs text-red-600">No result found or failed to retrieve live data.</p>
+          {% endif %}
+        </div>
+
+        <!-- 📡 Live MSISDN Tower Traces (New Section) - Mobile Optimized -->
+        <div class="bg-gray-50 p-3 rounded shadow">
+          <div class="flex justify-between items-center mb-2">
+            <h3 class="font-semibold text-base"><i class="fas fa-signal"></i> Real-Time Tower Traces</h3>
+            <button onclick="refreshTraces()" id="refresh-traces"
+                    class="bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 rounded text-xs flex items-center">
+              <i class="fas fa-sync-alt mr-1"></i> Refresh
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 text-xs md:text-sm traces-table">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="px-2 py-1 text-left font-medium text-gray-500 uppercase">MSISDN</th>
+                  <th class="px-2 py-1 text-left font-medium text-gray-500 uppercase">Tower</th>
+                  <th class="px-2 py-1 text-left font-medium text-gray-500 uppercase">eNB</th>
+                  <th class="px-2 py-1 text-left font-medium text-gray-500 uppercase">Cell</th>
+                  <th class="px-2 py-1 text-left font-medium text-gray-500 uppercase">Lat</th>
+                  <th class="px-2 py-1 text-left font-medium text-gray-500 uppercase">Lon</th>
+                  <th class="px-2 py-1 text-left font-medium text-gray-500 uppercase">Time</th>
+                  <th class="px-2 py-1 text-left font-medium text-gray-500 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                {% for trace in live_traces %}
+                <tr>
+                  <td class="px-2 py-1 font-mono">592{{ trace.msisdn }}</td>
+                  <td class="px-2 py-1 truncate max-w-[100px]">{{ trace.tower_name }}</td>
+                  <td class="px-2 py-1">{{ trace.enodeb_id }}</td>
+                  <td class="px-2 py-1">{{ trace.cell_id }}</td>
+                  <td class="px-2 py-1">{{ "%.6f"|format(trace.lat) }}</td>
+                  <td class="px-2 py-1">{{ "%.6f"|format(trace.lon) }}</td>
+                  <td class="px-2 py-1 text-gray-600">{{ trace.timestamp }}</td>
+                  <td class="px-2 py-1">
+                    <button onclick="downloadKMZ('{{ trace.msisdn }}')"
+                            class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs">
+                      <i class="fas fa-download"></i>
+                    </button>
+                  </td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="8" class="px-2 py-2 text-center text-gray-500">No tower traces found</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Viewer Logs Table - Mobile Optimized -->
+        <div class="bg-gray-50 p-3 rounded shadow">
+          <h3 class="font-semibold text-base mb-2"><i class="fas fa-history"></i> Recent Viewer Queries</h3>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 text-xs md:text-sm">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="px-2 py-1 text-left font-medium text-gray-500 uppercase">Time</th>
+                  <th class="px-2 py-1 text-left font-medium text-gray-500 uppercase">User</th>
+                  <th class="px-2 py-1 text-left font-medium text-gray-500 uppercase">Number</th>
+                  <th class="px-2 py-1 text-left font-medium text-gray-500 uppercase">From</th>
+                  <th class="px-2 py-1 text-left font-medium text-gray-500 uppercase">To</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                {% for log in viewer_logs %}
+                <tr>
+                  <td class="px-2 py-1">{{ log.timestamp }}</td>
+                  <td class="px-2 py-1">{{ log.username }}</td>
+                  <td class="px-2 py-1 font-mono">592{{ log.number }}</td>
+                  <td class="px-2 py-1">{{ format_provider(log.from) }}</td>
+                  <td class="px-2 py-1">{{ format_provider(log.to) }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="5" class="px-2 py-2 text-center text-gray-500">No viewer queries found</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- 📊 Metrics Dashboard (Admin Only) - Mobile Optimized -->
+    {% if tab == 'metrics' and session.role in ['admin', 'superadmin'] %}
+      <div class="grid grid-cols-1 gap-4">
+        <!-- Metadata Card -->
+        <div class="bg-gray-50 p-3 rounded shadow">
+          <div class="flex justify-between items-start">
+            <h3 class="font-semibold text-base mb-1"><i class="fas fa-chart-line"></i> Dashboard Metrics</h3>
+            {% if dashboard_stats.metadata.cache_age is defined %}
+              <span class="text-xs bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded">
+                Updated {{ dashboard_stats.metadata.cache_age }} mins ago
+              </span>
+            {% endif %}
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+            <div>
+              <p class="text-xs md:text-sm"><strong>Total Records:</strong> {{ dashboard_stats.metadata.total_records }}</p>
+              {% if dashboard_stats.metadata.date_range %}
+                <p class="text-xs md:text-sm"><strong>Date Range:</strong> {{ dashboard_stats.metadata.date_range.min }} → {{ dashboard_stats.metadata.date_range.max }}</p>
+              {% endif %}
+            </div>
+            <div>
+              <p class="text-xs md:text-sm"><strong>Generated:</strong> {{ dashboard_stats.metadata.generated_at }}</p>
+              {% if dashboard_stats.metadata.data_source %}
+                <p class="text-xs md:text-sm"><strong>Source:</strong> {{ dashboard_stats.metadata.data_source }}</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Porting Activity Chart -->
+        <div class="bg-gray-50 p-3 rounded shadow">
+          <h3 class="font-semibold text-base mb-2"><i class="fas fa-exchange-alt"></i> Porting Activity</h3>
+          <div class="grid grid-cols-3 gap-2">
+            <div class="bg-white p-2 rounded shadow-sm border border-gray-200">
+              <p class="text-xs text-gray-500">Today</p>
+              <p class="text-lg font-bold">{{ dashboard_stats.porting_activity.today if dashboard_stats and dashboard_stats.porting_activity else 0 }}</p>
+            </div>
+            <div class="bg-white p-2 rounded shadow-sm border border-gray-200">
+              <p class="text-xs text-gray-500">This Week</p>
+              <p class="text-lg font-bold">{{ dashboard_stats.porting_activity.this_week if dashboard_stats and dashboard_stats.porting_activity else 0 }}</p>
+            </div>
+            <div class="bg-white p-2 rounded shadow-sm border border-gray-200">
+              <p class="text-xs text-gray-500">This Month</p>
+              <p class="text-lg font-bold">{{ dashboard_stats.porting_activity.this_month if dashboard_stats and dashboard_stats.porting_activity else 0 }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Provider Distribution -->
+        <div class="bg-gray-50 p-3 rounded shadow">
+          <h3 class="font-semibold text-base mb-2"><i class="fas fa-chart-pie"></i> Provider Distribution</h3>
+          <div class="grid grid-cols-3 gap-2">
+            <div class="bg-enet/10 p-2 rounded border-l-4 border-enet">
+              <p class="text-xs text-enet">ENet</p>
+              <p class="text-lg font-bold">{{ dashboard_stats.provider_distribution.enet }}%</p>
+            </div>
+            <div class="bg-gtt/10 p-2 rounded border-l-4 border-gtt">
+              <p class="text-xs text-gtt">GTT</p>
+              <p class="text-lg font-bold">{{ dashboard_stats.provider_distribution.gtt }}%</p>
+            </div>
+            <div class="bg-digicel/10 p-2 rounded border-l-4 border-digicel">
+              <p class="text-xs text-digicel">Digicel</p>
+              <p class="text-lg font-bold">{{ dashboard_stats.provider_distribution.digicel }}%</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Porting Activity -->
+        <div class="bg-gray-50 p-3 rounded shadow">
+          <h3 class="font-semibold text-base mb-2"><i class="fas fa-list"></i> Recent Porting Activity</h3>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 text-xs md:text-sm">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="px-2 py-1 text-left font-medium text-gray-500 uppercase">Date</th>
+                  <th class="px-2 py-1 text-left font-medium text-gray-500 uppercase">Number</th>
+                  <th class="px-2 py-1 text-left font-medium text-gray-500 uppercase">From</th>
+                  <th class="px-2 py-1 text-left font-medium text-gray-500 uppercase">To</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                {% for port in dashboard_stats.recent_ports %}
+                <tr>
+                  <td class="px-2 py-1">{{ port.date }}</td>
+                  <td class="px-2 py-1 font-mono">592{{ port.number }}</td>
+                  <td class="px-2 py-1">{{ format_provider(port.from) }}</td>
+                  <td class="px-2 py-1">{{ format_provider(port.to) }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="4" class="px-2 py-2 text-center text-gray-500">No recent porting activity</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </main>
+
+  <!-- ⬇️ FontAwesome (Icons) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+</body>
+</html>

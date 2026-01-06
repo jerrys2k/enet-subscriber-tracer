@@ -1,0 +1,65 @@
+import pandas as pd
+import os
+import logging
+
+CELL_MAP_CACHE = None
+
+LTE_CELL_FILE = "data/E_Networks_EPT_2025APR25.xlsx"
+
+
+def load_cell_mapping():
+    """Load LTE cell site data from the master Excel file."""
+    global CELL_MAP_CACHE
+
+    if CELL_MAP_CACHE is not None:
+        return CELL_MAP_CACHE
+
+    try:
+        df = pd.read_excel(LTE_CELL_FILE, sheet_name="LTE")
+        df.columns = df.columns.str.strip()
+
+        df = df[
+            [
+                "eNodeB ID",
+                "eNodeB Name",
+                "Cell Name",
+                "Local Cell ID",
+                "Cell ID",
+                "PCI",
+                "Latitude",
+                "Longitude",
+            ]
+        ]
+
+        df = df.dropna(subset=["Cell ID", "Latitude", "Longitude"])
+        df["Cell ID"] = df["Cell ID"].astype(int)
+        CELL_MAP_CACHE = df.set_index("Cell ID").to_dict(orient="index")
+        return CELL_MAP_CACHE
+
+    except Exception as e:
+        logging.error(f"Failed to load LTE cell mapping: {e}")
+        return {}
+
+
+def get_cell_info_from_eci(eci):
+    """Given an ECI (Cell ID), return site and GPS info."""
+    try:
+        mapping = load_cell_mapping()
+        cell = mapping.get(int(eci))
+        if not cell:
+            return None
+
+        lat = cell["Latitude"]
+        lon = cell["Longitude"]
+        google_earth_url = f"https://earth.google.com/web/search/{lat},{lon}"
+
+        return {
+            "tower": cell["eNodeB Name"],
+            "cell_id": eci,
+            "gps": f"{lat}, {lon}",
+            "link": google_earth_url,
+        }
+
+    except Exception as e:
+        logging.warning(f"Cell lookup failed for ECI {eci}: {e}")
+        return None

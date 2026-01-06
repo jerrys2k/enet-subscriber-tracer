@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; padding: 40px; }
+    h1 { color: #f7941d; }
+    .section { margin-bottom: 30px; }
+    .label { font-weight: bold; }
+    .value { margin-left: 10px; }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #ccc;
+      padding-bottom: 10px;
+      margin-bottom: 30px;
+    }
+    .logo { height: 50px; }
+    .tag {
+      background-color: #fce7d3;
+      color: #d97706;
+      font-weight: bold;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      display: inline-block;
+      margin-left: 10px;
+    }
+    .provider-GTT { color: #1d4ed8; font-weight: bold; }
+    .provider-ENet { color: #f7941d; font-weight: bold; }
+    .provider-Digicel { color: #dc2626; font-weight: bold; }
+    .footer {
+      margin-top: 50px;
+      font-size: 12px;
+      color: #777;
+      border-top: 1px solid #ddd;
+      padding-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="{{ logo_url }}" class="logo" alt="ENet Logo">
+    <div><strong>Generated:</strong> {{ timestamp }}</div>
+  </div>
+
+  <h1>MSISDN Report</h1>
+
+  <div class="section">
+    <div><span class="label">MSISDN:</span><span class="value">{{ result.number }}</span>
+      {% if result.porting_history.from != result.porting_history.to %}
+        <span class="tag">Ported</span>
+      {% else %}
+        <span class="tag" style="background-color:#eee; color:#444;">Not Ported</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="label">Customer Info:</div>
+    <div>Name: {{ result.customer_info.first_name }} {{ result.customer_info.last_name }}</div>
+    <div>Email: {{ result.customer_info.email }}</div>
+    <div>Address: {{ result.customer_info.address }}</div>
+  </div>
+
+  <div class="section">
+    <div class="label">Porting History:</div>
+    <div>From: <span class="provider-{{ result.porting_history.from }}">{{ result.porting_history.from }}</span>
+      → To: <span class="provider-{{ result.porting_history.to }}">{{ result.porting_history.to }}</span></div>
+    <div>Date: {{ result.porting_history.date }}</div>
+    <div>Source: {{ result.porting_history.source }}</div>
+  </div>
+
+  <div class="section">
+    <div class="label">Provider Information:</div>
+    <div>Original: <span class="provider-{{ result.provider_info.original }}">{{ result.provider_info.original }}</span></div>
+    <div>Current: <span class="provider-{{ result.provider_info.current }}">{{ result.provider_info.current }}</span></div>
+  </div>
+
+  <div class="footer">
+    This document was generated for investigative purposes. ENet internal use only.
+  </div>
+</body>
+</html>

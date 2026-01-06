@@ -1,0 +1,421 @@
+# ✅ FILE: app.py - Main Flask Application for ENet MSISDN Checker
+
+# ✅ IMPORTS
+from flask import Flask, render_template, request, redirect, session, url_for, send_file
+import requests
+import pandas as pd
+import os
+from datetime import datetime
+import urllib3
+from tools.helpers import generate_dashboard
+
+# ✅ SUPPRESS WARNINGS FOR SELF-SIGNED CERTS
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# ✅ FLASK APP SETUP
+app = Flask(__name__)
+app.secret_key = "enet-secret"
+app.config["TEMPLATES_AUTO_RELOAD"] = True
+
+# ✅ LOGGING CONFIGURATION
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] %(levelname)s: %(message)s",
+    handlers=[logging.StreamHandler()],
+)
+
+# ✅ GLOBAL NMP DICTIONARY
+nmp_data = {}
+prefix_map = []
+
+
+# ✅ HELPER: Normalize provider names into HTML colored labels
+def normalize_provider(code):
+    code = code.upper()
+    if code == "GTTG":
+        return '<span style="color:blue; font-weight:bold">OneComm</span>'
+    elif code == "ENTG":
+        return '<span style="color:orange; font-weight:bold">ENet</span>'
+    elif code == "DIGG":
+        return '<span style="color:red; font-weight:bold">Digicel</span>'
+    return code
+
+
+# ✅ LOAD: Ported numbers from master sheet
+def load_nmp_master():
+    global nmp_data
+    try:
+        df = pd.read_excel("data/nmp_master.xlsx")
+        df["number"] = df["number"].astype(str).str.strip()
+        count = 0
+        for _, row in df.iterrows():
+            number = str(row["number"]).strip().replace(".0", "")
+            nmp_data[number] = {
+                "from": normalize_provider(row["from"]),
+                "to": normalize_provider(row["to"]),
+                "date": str(row["date"]),
+                "source": row.get("source", "unknown"),
+            }
+            count += 1
+        logging.info(f"✅ Loaded {count} NMP entries from nmp_master.xlsx.")
+    except Exception as e:
+        logging.error(f"❌ Failed to load NMP master: {e}")
+
+
+# ✅ APPEND: New live NMP entry to master file and memory
+def append_to_nmp_master(msisdn, from_code, to_code, effective_since):
+    try:
+        master_path = "data/nmp_master.xlsx"
+        number = str(msisdn)[-7:]
+        df = pd.read_excel(master_path)
+        df["number"] = df["number"].astype(str).str.strip()
+        match = df[(df["number"] == number) & (df["to"] == to_code)]
+        if not match.empty:
+            logging.info(f"ℹ️ {number} already in master, skipping append.")
+            return
+
+        new_row = pd.DataFrame(
+            [
+                {
+                    "number": number,
+                    "from": from_code,
+                    "to": to_code,
+                    "date": effective_since.split("T")[0],
+                    "source": "live_api",
+                }
+            ]
+        )
+
+        df = pd.concat([df, new_row], ignore_index=True)
+        df.to_excel(master_path, index=False)
+        logging.info(f"✅ Appended {number} → {to_code} from live API to master.")
+
+        # ✅ NEW: Also update in-memory nmp_data immediately
+        from app import nmp_data
+
+        nmp_data[number] = {
+            "from": from_code,
+            "to": to_code,
+            "date": effective_since.split("T")[0],
+            "source": "live_api",
+        }
+
+    except Exception as e:
+        logging.error(f"❌ Failed to append NMP live result: {e}")
+
+
+# ✅ SALESFORCE LOOKUP
+def get_salesforce_customer(msisdn):
+    try:
+        headers = {
+            "client_id": "7694144c173b4e33b9ef07b704fec733",
+            "client_secret": "E99C70b938Fa4d64998464D3Ff02FdC3",
+        }
+        base = "https://prd-enet-core-prc-api-h8xpg6.a9tihy.usa-e2.cloudhub.io/api/v1"
+        validate_url = f"{base}/sf/accounts/validation"
+        print("[DEBUG] Salesforce validation URL:", validate_url)
+        print("[DEBUG] MSISDN param:", msisdn)
+        res1 = requests.get(
+            validate_url, params={"msisdn": msisdn}, headers=headers, timeout=5
+        )
+        print("[DEBUG] Validation status:", res1.status_code)
+        if res1.status_code != 200:
+            return {"error": "validation failed"}
+        records = res1.json().get("records", [])
+        if not records:
+            return {"error": "No match"}
+        sub_id = records[0].get("Id")
+        if not sub_id:
+            return {"error": "No subscriber ID"}
+        profile_url = f"{base}/sf/accounts/{sub_id}"
+        res2 = requests.get(
+            profile_url, params={"segment": "PROFILE"}, headers=headers, timeout=5
+        )
+        print("[DEBUG] Profile status:", res2.status_code)
+        if res2.status_code != 200:
+            return {"error": "profile fetch failed"}
+        profile = res2.json().get("records", [])[0]
+        return {
+            "subscriberId": sub_id,
+            "first_name": profile.get("FirstName"),
+            "last_name": profile.get("LastName"),
+            "email": profile.get("PersonEmail"),
+            "type": profile.get("SubscriberType"),
+            "dob": profile.get("PersonBirthdate"),
+            "gender": profile.get("Gender__pc"),
+            "address": f"{profile.get('BillingStreet', '')}, {profile.get('BillingCity', '')}, {profile.get('BillingRegion', '')}",
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ✅ FUNCTION: Query Live NMP API with full result parsing + fallback
+def query_live_nmp(number):
+    import requests
+    import logging
+
+    try:
+        url = f"https://pxs-number-portability.enetworks.gy/np_api/info/{number}"
+        res = requests.get(
+            url,
+            auth=("jerry_singh", "UfjGvZEW7NF6CFcp"),
+            headers={"accept": "application/json"},
+            timeout=10,
+            verify=False,
+        )
+        if res.status_code != 200:
+            logging.warning(f"⚠️ Live NMP returned status {res.status_code}")
+            return None
+
+        data = res.json()
+        item = data["soap:Envelope"]["soap:Body"]["PortingActionResponse"][
+            "PortingActionResult"
+        ]["message"]["messagebody"]["item"]
+
+        # 🔍 Log what we actually got
+        logging.debug(f"[LIVE NMP API result] ✅ {item}")
+
+        return {
+            "from": item.get("originalnetworkoperator", "UNKNOWN"),
+            "to": normalize_provider(item.get("currentnetworkoperator", "UNKNOWN")),
+            "date": item.get("effectivesince", "-").replace("T", " ").split("+")[0],
+            "source": "live_api",
+        }
+
+    except Exception as e:
+        logging.warning(f"⚠️ Live NMP error for {number}: {e}")
+        return None
+
+
+# ✅ LOOKUP: Match number against prefix ranges (Number Range.csv)
+def get_original_provider(number):
+    try:
+        prefix = int(number)
+        for start, end, provider in prefix_map:
+            if start <= prefix <= end:
+                return normalize_provider(provider)
+    except:
+        pass
+    return "Unknown"
+
+
+# ✅ ROUTE: LOGIN
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        session["logged_in"] = True
+        return redirect(url_for("admin"))
+    return render_template("login.html")
+
+
+# ✅ ROUTE: Export Dashboard Metrics
+@app.route("/export-dashboard")
+def export_dashboard():
+    from tools.helpers import generate_dashboard
+    import pandas as pd
+
+    stats = generate_dashboard()
+
+    # Flatten and convert to DataFrames
+    daily = pd.DataFrame(stats["daily"])
+    routes = pd.DataFrame(stats["routes"])
+    prefixes = pd.DataFrame(stats["prefixes"])
+
+    # Save to Excel
+    filepath = "data/dashboard_metrics.xlsx"
+    with pd.ExcelWriter(filepath, engine="openpyxl") as writer:
+        daily.to_excel(writer, sheet_name="Daily", index=False)
+        routes.to_excel(writer, sheet_name="Routes", index=False)
+        prefixes.to_excel(writer, sheet_name="Prefixes", index=False)
+
+    return send_file(filepath, as_attachment=True)
+
+
+# ✅ ROUTE: LOGOUT
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+
+# ✅ ROUTE: ADMIN DASHBOARD (TABS)
+@app.route("/admin", methods=["GET", "POST"])
+def admin():
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+    tab = request.args.get("tab", "lookup")
+    result = None
+    upload_message = None
+    dashboard_stats = {}  # ✅ Add this
+
+    if request.method == "POST" and tab == "upload":
+        file = request.files.get("file")
+        if file:
+            filename = "input.xlsx"
+            path = os.path.join("data", filename)
+            file.save(path)
+            load_nmp_master()
+            upload_message = f"✅ Uploaded and loaded {filename}"
+            return redirect(url_for("admin", tab="upload"))
+
+    if tab == "metrics":
+        dashboard_stats = generate_dashboard()  # ✅ load metrics
+
+    return render_template(
+        "admin.html",
+        tab=tab,
+        result=result,
+        upload_message=upload_message,
+        nmp_data=nmp_data,
+        dashboard_stats=dashboard_stats,
+    )
+
+
+# ✅ ROUTE: DEFAULT INDEX → LOGIN REDIRECT
+@app.route("/")
+def index():
+    return redirect(url_for("login"))
+
+
+# ✅ HELPER: Determine original provider from ranges.csv
+def load_nmp_data():
+    global prefix_map
+    try:
+        df = pd.read_csv("data/ranges.csv")
+        prefix_map = []
+        for _, row in df.iterrows():
+            prefix_map.append((row["start"], row["end"], row["provider"]))
+        logging.info(f"✅ Loaded {len(prefix_map)} prefix ranges.")
+    except Exception as e:
+        logging.error(f"❌ Failed to load prefix ranges: {e}")
+
+
+# ✅ HELPER: Determine original provider from ranges.csv (raw code)
+def find_raw_provider(msisdn):
+    try:
+        prefix = int(msisdn[-7:])
+        for start, end, provider in prefix_map:
+            if start <= prefix <= end:
+                return provider
+    except Exception as e:
+        logging.error(f"❌ Error finding raw provider for {msisdn}: {e}")
+        return None
+
+
+# ✅ ROUTE: PUBLIC CHECKER (/index)
+@app.route("/index", methods=["GET"])
+def public_checker():
+    result = None
+    number = request.args.get("number", "").strip()
+
+    if number:
+        msisdn = f"592{number}"
+
+        customer_info = get_salesforce_customer(msisdn)
+        live_nmp = query_live_nmp(number)
+        nmp_result = nmp_data.get(number)
+        original_provider = get_original_provider(number)
+
+        # ✅ Fallback: If live NMP fails, try prefix-based owner
+        if not live_nmp:
+            fallback = find_raw_provider(msisdn)
+            assigned_to = fallback
+            if fallback:
+                nmp_result = {
+                    "from": "UNKNOWN",
+                    "to": normalize_provider(fallback),
+                    "date": datetime.utcnow().strftime("%Y-%m-%d"),
+                    "source": "fallback_range",
+                }
+        else:
+            assigned_to = live_nmp["to"]
+
+        # ✅ If number not in memory but found in live NMP, append + update memory
+        if number not in nmp_data and live_nmp:
+            from_code = live_nmp.get("from", "Unknown")
+            to_code = live_nmp.get("to", "Unknown")
+            date = live_nmp.get("date", datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"))
+
+            append_to_nmp_master(
+                msisdn,
+                from_code,
+                to_code,
+                date
+            )
+
+            nmp_data[number] = {
+                "from": from_code,
+                "to": to_code,
+                "date": date,
+                "source": "live_api"
+            }
+
+        result = {
+            "number": msisdn,
+            "assigned_to": normalize_provider(assigned_to),
+            "ported_to": live_nmp["to"] if live_nmp else (nmp_result["to"] if nmp_result else "Unknown"),
+            "original_provider": original_provider,
+            "color": "blue",
+            "customer_info": customer_info,
+            "nmp_porting": nmp_result,
+            "porting_history": {
+                "ported_from": (
+                    nmp_result["from"]
+                    if nmp_result and nmp_result.get("from")
+                    else "Unknown"
+                ),
+                "ported_to": (
+                    nmp_result["to"]
+                    if nmp_result and nmp_result.get("to")
+                    else "Unknown"
+                ),
+                "ported_on": (
+                    nmp_result["date"] if nmp_result and nmp_result.get("date") else "–"
+                ),
+            },
+        }
+
+    return render_template("index.html", result=result)
+
+
+# ✅ ROUTE: ADMIN LOOKUP HANDLER (FULL UNIFIED LOOKUP)
+@app.route("/check", methods=["GET"])
+def check():
+    number = request.args.get("number", "").strip()
+    msisdn = f"592{number}"
+    customer_info = get_salesforce_customer(msisdn)
+    live_nmp = query_live_nmp(number)
+    nmp_result = nmp_data.get(number)
+
+    # ✅ Fallback: If live NMP fails, try prefix-based owner
+    if not live_nmp:
+        fallback = find_raw_provider(msisdn)
+        if fallback:
+            nmp_result = {
+                "from": "UNKNOWN",
+                "to": normalize_provider(fallback),
+                "date": datetime.utcnow().strftime("%Y-%m-%d"),
+                "source": "fallback_range",
+            }
+
+    # ✅ Assign colored label for current provider
+    assigned_to = (
+        normalize_provider(live_nmp.get("to", "UNKNOWN"))
+        if live_nmp
+        else normalize_provider(find_raw_provider(msisdn))
+    )
+    assigned_to_label = assigned_to
+    display_provider = nmp_result.get("to") if nmp_result else assigned_to_label
+    original_provider = get_original_provider(number)
+
+    print("[DEBUG] nmp_result for", number, ":", nmp_result)
+
+    # ✅ If number not in memory but found in live NMP, append + update memory
+    if number not in nmp_data and live_nmp:
+        from_code = live_nmp.get("from", "Unknown")
+        to_code = live_nmp.get("to", "Unknown")
+        date = live_nmp.get("date", datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"))
+
+        append_

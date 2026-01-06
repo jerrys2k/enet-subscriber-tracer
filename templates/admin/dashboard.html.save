@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ENet Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            enet: '#f7941d',
+            gtt: '#1d4ed8',
+            digicel: '#dc2626',
+            inactive: '#6b7280'
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="icon" href="/static/favicon.ico" />
+  {% macro format_provider(provider) %}
+    {% if provider.lower() == 'digicel' %}
+      <span class="text-digicel font-semibold">Digicel</span>
+    {% elif provider.lower() == 'gtt' %}
+      <span class="text-gtt font-semibold">GTT</span>
+    {% elif provider.lower() == 'enet' %}
+      <span class="text-enet font-semibold">ENet</span>
+    {% else %}
+      <span class="text-gray-600 font-semibold">{{ provider }}</span>
+    {% endif %}
+  {% endmacro %}
+</head>
+
+<body class="bg-gray-100 text-gray-800">
+  <!-- 🌐 Header with Role -->
+  <header class="bg-orange-500 shadow p-4 flex items-center justify-between">
+    <div class="flex items-center">
+      <img src="{{ url_for('static', filename='enet_logo.png') }}" class="h-10 mr-3" alt="ENet Logo" />
+      <h1 class="text-xl font-bold text-white">ENet Dashboard</h1>
+    </div>
+    <div class="flex items-center gap-3">
+      {% if session['role'] == 'admin' %}
+        <span class="bg-white text-orange-600 text-sm font-semibold px-3 py-1 rounded-full">Admin</span>
+      {% elif session['role'] == 'viewer' %}
+        <span class="bg-white text-blue-600 text-sm font-semibold px-3 py-1 rounded-full">Viewer</span>
+      {% endif %}
+      <a href="/logout" class="text-white text-sm font-semibold hover:underline">
+        <i class="fas fa-sign-out-alt mr-1"></i> Logout
+      </a>
+    </div>
+  </header>
+
+  <!-- 📂 Navigation Tabs -->
+  <nav class="bg-orange-400 flex justify-around text-white font-semibold py-3">
+    <a href="/admin?tab=lookup" class="hover:bg-orange-500 px-4 py-2 rounded {% if tab == 'lookup' %}bg-orange-600{% endif %}">🔍 Lookup</a>
+    {% if session['role'] == 'admin' %}
+      <a href="/admin?tab=prefix" class="hover:bg-orange-500 px-4 py-2 rounded {% if tab == 'prefix' %}bg-orange-600{% endif %}">🛠 Prefix Manager</a>
+      <a href="/admin?tab=live" class="hover:bg-orange-500 px-4 py-2 rounded {% if tab == 'live' %}bg-orange-600{% endif %}">⚡ Live NMP</a>
+      <a href="/admin?tab=metrics" class="hover:bg-orange-500 px-4 py-2 rounded {% if tab == 'metrics' %}bg-orange-600{% endif %}">📊 Metrics</a>
+    {% endif %}
+  </nav>
+
+  <main class="max-w-6xl mx-auto mt-10 p-6 bg-white shadow-xl rounded-lg">
+    <!-- 📌 Lookup Tab -->
+    {% if tab == 'lookup' %}
+      {% if result %}
+        <div class="mb-6 border-l-4 pl-4 {% if result.current_provider == 'ENet' %}border-enet{% elif result.current_provider == 'GTT' %}border-gtt{% elif result.current_provider == 'Digicel' %}border-digicel{% else %}border-gray-400{% endif %}">
+          <h2 class="text-lg font-bold">
+            MSISDN:
+            <span class="text-xl font-extrabold {% if result.current_provider == 'ENet' %}text-enet{% elif result.current_provider == 'GTT' %}text-gtt{% elif result.current_provider == 'Digicel' %}text-digicel{% else %}text-gray-600{% endif %}">
+              592{{ number }}
+            </span>
+            <span class="ml-2 text-sm font-normal {% if result.source == 'live' %}bg-green-100 text-green-800{% else %}bg-blue-100 text-blue-800{% endif %} px-2 py-1 rounded">
+              {{ result.source|upper }} DATA
+            </span>
+          </h2>
+        </div>
+      {% endif %}
+
+      <form method="GET" action="/admin" class="mb-6">
+        <input type="hidden" name="tab" value="lookup">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Enter 7-digit number</label>
+        <input type="text" name="number" value="{{ number or '' }}" maxlength="7" required 
+               class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-orange-400" />
+        <button type="submit" class="w-full mt-3 bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 rounded">
+          Check
+        </button>
+      </form>
+
+      {% if result %}
+        <!-- 👤 Customer Info -->
+        <div class="space-y-6">
+          {% if result.customer_info %}
+          <div class="bg-gray-50 p-4 rounded shadow">
+            <h3 class="font-semibold text-lg mb-2"><i class="fas fa-user"></i> Customer Info</h3>
+            <p><strong>Name:</strong> {{ result.customer_info.first_name }} {{ result.customer_info.last_name }}</p>
+            <p><strong>Email:</strong> {{ result.customer_info.email }}</p>
+            <p><strong>Address:</strong> {{ result.customer_info.address }}</p>
+          </div>
+          {% endif %}
+
+          <!-- 📡 Last Seen Location (Live RADIUS Data) -->
+          {% if location %}
+          <div class="bg-gray-50 p-4 rounded shadow">
+            <h3 class="font-semibold text-lg mb-2"><i class="fas fa-map-marker-alt"></i> Last Seen Cell Info</h3>
+            <p><strong>Tower:</strong> {{ location.tower }}</p>
+            <p><strong>Cell ID:</strong> {{ location.cell_id }}</p>
+            <p><strong>Latitude:</strong> {{ location.lat }}</p>
+            <p><strong>Longitude:</strong> {{ location.lon }}</p>
+            <p>
+              <a href="https://earth.google.com/web/search/{{ location.lat }},{{ location.lon }}" target="_blank"
+                 class="text-blue-600 hover:underline font-semibold">
+                🌍 View in Google Earth
+              </a>
+            </p>
+          </div>
+          {% endif %}
+
+          <!-- 🔁 Porting History -->
+          <div class="bg-gray-50 p-4 rounded shadow">
+            <h3 class="font-semibold text-lg mb-2"><i class="fas fa-exchange-alt"></i> Porting History</h3>
+            <p>
+              <strong>Original Provider:</strong> {{ format_provider(result.original_provider) }}
+            </p>
+            <p>
+              <strong>Current Provider:</strong> {{ format_provider(result.current_provider) }}
+            </p>
+            {% if result.has_port_history %}
+            <div class="mt-2 pt-2 border-t border-gray-200">
+              <p>
+                <strong>From:</strong> {{ format_provider(result.porting_history.from) }}
+                → 
+                <strong>To:</strong> {{ format_provider(result.porting_history.to) }}
+              </p>
+              <p><strong>Date:</strong> {{ result.porting_history.date }}</p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    {% endif %}
+
+    <!-- 🛠 Prefix Upload (Admin Only) -->
+    {% if tab == 'prefix' and session['role'] == 'admin' %}
+      <form method="POST" action="/admin/prefix" enctype="multipart/form-data" class="space-y-4">
+        <label class="block text-sm font-medium text-gray-700">Upload Ranges CSV File</label>
+        <input type="file" name="file" accept=".csv" class="w-full border px-4 py-2 rounded" />
+        <button type="submit" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded font-semibold">
+          Update Prefixes
+        </button>
+      </form>
+      {% if upload_message %}
+        <p class="mt-4 text-green-600 font-medium">{{ upload_message }}</p>
+      {% endif %}
+    {% endif %}
+
+    <!-- ⚡ Live NMP Tab (Admin Only) -->
+    {% if tab == 'live' and session['role'] == 'admin' %}
+      <div class="space-y-6">
+        <!-- Live Query Form -->
+        <div class="bg-gray-50 p-4 rounded shadow">
+          <h3 class="font-semibold text-lg mb-3"><i class="fas fa-bolt"></i> Live NMP Query</h3>
+          <form method="GET" action="/admin">
+            <input type="hidden" name="tab" value="live">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Enter 7-digit number</label>
+            <div class="flex gap-2">
+              <input type="text" name="number" value="{{ number or '' }}" maxlength="7" required 
+                     class="flex-1 px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-orange-400" />
+              <button type="submit" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded font-semibold">
+                Query
+              </button>
+            </div>
+          </form>
+          
+          {% if live_result %}
+            <div class="mt-4 pt-4 border-t border-gray-200 space-y-2">
+              <h4 class="font-semibold">Live Result</h4>
+              <p><strong>From:</strong> {{ format_provider(live_result.from) }}</p>
+              <p><strong>To:</strong> {{ format_provider(live_result.to) }}</p>
+              <p><strong>Date:</strong> {{ live_result.date }}</p>
+            </div>
+          {% elif number %}
+            <p class="mt-3 text-sm text-red-600">No result found or failed to retrieve live data.</p>
+          {% endif %}
+        </div>
+
+        <!-- Viewer Logs Table -->
+        <div class="bg-gray-50 p-4 rounded shadow">
+          <h3 class="font-semibold text-lg mb-3"><i class="fas fa-history"></i> Recent Viewer Queries</h3>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Number</th>
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">From</th>
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">To</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                {% for log in viewer_logs %}
+                <tr>
+                  <td class="px-4 py-2 text-sm">{{ log.timestamp }}</td>
+                  <td class="px-4 py-2 text-sm">{{ log.username }}</td>
+                  <td class="px-4 py-2 text-sm font-mono">592{{ log.number }}</td>
+                  <td class="px-4 py-2 text-sm">{{ format_provider(log.from) }}</td>
+                  <td class="px-4 py-2 text-sm">{{ format_provider(log.to) }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="5" class="px-4 py-4 text-sm text-gray-500 text-center">No viewer queries found</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- 📊 Metrics Dashboard (Admin Only) -->
+    {% if tab == 'metrics' and session['role'] == 'admin' %}
+      <div class="grid grid-cols-1 gap-6">
+        <!-- Metadata Card -->
+        <div class="bg-gray-50 p-4 rounded shadow">
+          <div class="flex justify-between items-start">
+            <h3 class="font-semibold text-lg mb-2"><i class="fas fa-chart-line"></i> Dashboard Metrics</h3>
+            {% if dashboard_stats.metadata.cache_age is defined %}
+              <span class="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
+                Updated {{ dashboard_stats.metadata.cache_age }} mins ago
+              </span>
+            {% endif %}
+          </div>
+          <div class="grid grid-cols-2 gap-4 mt-2">
+            <div>
+              <p class="text-sm"><strong>Total Records:</strong> {{ dashboard_stats.metadata.total_records }}</p>
+              {% if dashboard_stats.metadata.date_range %}
+                <p class="text-sm"><strong>Date Range:</strong> {{ dashboard_stats.metadata.date_range.min }} → {{ dashboard_stats.metadata.date_range.max }}</p>
+              {% endif %}
+            </div>
+            <div>
+              <p class="text-sm"><strong>Generated:</strong> {{ dashboard_stats.metadata.generated_at }}</p>
+              {% if dashboard_stats.metadata.data_source %}
+                <p class="text-sm"><strong>Source:</strong> {{ dashboard_stats.metadata.data_source }}</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Prefix Ownership -->
+        <div class="bg-gray-50 p-4 rounded shadow">
+          <h3 class="font-semibold text-lg mb-2">📦 Prefix Ownership</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for block in dashboard_stats.prefixes %}
+              <div class="border-l-4 pl-3 {% if block.provider == 'ENet' %}border-enet{% elif block.provider == 'GTT' %}border-gtt{% elif block.provider == 'Digicel' %}border-digicel{% else %}border-gray-400{% endif %}">
+                <p class="font-mono font-bold">{{ block.prefix }}</p>
+                <p class="text-sm">{{ block.count }} numbers ({{ block.provider }})</p>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Top Porting Routes -->
+        <div class="bg-gray-50 p-4 rounded shadow">
+          <h3 class="font-semibold text-lg mb-2">🔁 Top Porting Routes</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for route in dashboard_stats.routes %}
+              <div class="flex items-center justify-between p-2 bg-white rounded border">
+                <div>
+                  <span class="font-semibold">{{ route.from }} → {{ route.to }}</span>
+                </div>
+                <span class="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-sm">
+                  {{ route.total }}
+                </span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Last 7 Days Port-ins -->
+        <div class="bg-gray-50 p-4 rounded shadow">
+          <h3 class="font-semibold text-lg mb-2">🗓 Last 7 Days Port-ins</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {% for item in dashboard_stats.last_7_days %}
+              <div class="p-3 bg-white rounded border flex items-center justify-between">
+                <span class="font-semibold">{{ item.to }}</span>
+                <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">
+                  {{ item.count }}
+                </span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Daily Port-ins Chart -->
+        <div class="bg-white p-4 rounded shadow">
+          <h3 class="font-semibold text-lg mb-4">📊 Chart: Daily Port-ins</h3>
+          <canvas id="dailyChart"></canvas>
+        </div>
+      </div>
+
+      <!-- 📊 Chart.js Script -->
+      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+      <script>
+        const ctx = document.getElementById('dailyChart');
+        const chart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: [{% for item in dashboard_stats.daily %}"{{ item.date_day }}"{% if not loop.last %}, {% endif %}{% endfor %}],
+            datasets: [{
+              label: 'Port-ins per Day',
+              data: [{% for item in dashboard_stats.daily %}{{ item.total }}{% if not loop.last %}, {% endif %}{% endfor %}],
+              fill: false,
+              borderColor: '#f7941d',
+              tension: 0.1
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              y: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+      </script>
+    {% endif %}
+  </main>
+
+  <!-- ⬇️ FontAwesome (Icons) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!-- ✅ FILE: templates/public/checker.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ENet MSISDN Lookup Portal</title>
+    <link rel="icon" href="/static/favicon.ico" />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f4f4f4;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        max-width: 750px;
+        margin: 40px auto;
+        background: #fff;
+        padding: 30px;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+      header img {
+        height: 35px;
+      }
+      h1 {
+        font-size: 1.5rem;
+        color: #222;
+      }
+      input[type="text"] {
+        padding: 10px;
+        width: 70%;
+        font-size: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      button {
+        padding: 10px 18px;
+        background: #f7941d;
+        color: white;
+        border: none;
+        font-weight: bold;
+        font-size: 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .row-block {
+        margin-top: 25px;
+        padding-top: 10px;
+      }
+      .section-title {
+        font-weight: bold;
+        font-size: 1.1rem;
+        margin-bottom: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <img src="/static/logo.png" alt="ENet" />
+        <h1>MSISDN Lookup Portal</h1>
+      </header>
+
+      <!-- ✅ INPUT FORM -->
+      <form method="GET" action="/check">
+        <input
+          type="text"
+          name="number"
+          placeholder="Enter 7-digit number"
+          maxlength="7"
+          required
+        />
+        <button type="submit">🔍 Lookup</button>
+      </form>
+
+      {% if result %}
+      <div class="row-block">
+        <div class="section-title">📱 MSISDN: {{ result.number }}</div>
+
+        {% if result.customer_info %}
+        <div class="row-block">
+          <div class="section-title">👤 Customer Information</div>
+          Name: {{ result.customer_info.first_name }} {{ result.customer_info.last_name }}<br />
+          Email: {{ result.customer_info.email }}<br />
+          Address: {{ result.customer_info.address }}
+        </div>
+        {% endif %}
+
+        <div class="row-block">
+          <div class="section-title">🔁 Porting History</div>
+          From: {{ result.porting_history.from or 'Unknown' }} → To:
+          {{ result.porting_history.to or 'Unknown' }}<br />
+          Date: {{ result.porting_history.date or '-' }}<br />
+          Source: {{ result.source|capitalize }}
+        </div>
+
+        <div class="row-block">
+          <div class="section-title">🧭 Provider Information</div>
+          Original Provider: {{ result.original_provider or 'Unknown' }}<br />
+          Current: {{ result.current_provider or 'Unknown' }}
+        </div>
+
+        {% if result.location %}
+        <div class="row-block">
+          <div class="section-title">📍 Last Known Location</div>
+          Tower: {{ result.location.tower or '—' }}<br />
+          Cell ID: {{ result.location.cell_id or '—' }}<br />
+          Region: {{ result.location.region or '—' }}<br />
+          GPS:
+          {% if result.location.gps %}
+            <a href="https://earth.google.com/web/search/{{ result.location.gps }}" target="_blank">
+              {{ result.location.gps }}
+            </a>
+          {% else %}
+            —
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </body>
+</html>

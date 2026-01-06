@@ -1,0 +1,48 @@
+import sqlite3
+import simplekml
+from geopy.distance import distance
+
+def generate_kmz(msisdn, db_path="logs/trace.db", output="export.kmz"):
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("""
+    SELECT tower_name, lat, lon, enodeb_id, cell_id, timestamp
+    FROM latest_traces
+    WHERE msisdn = ? OR msisdn = ?
+    """, (msisdn, "592" + msisdn))
+    row = cursor.fetchone()
+    conn.close()
+
+    if not row:
+        print(f"MSISDN {msisdn} not found in trace DB.")
+        return
+
+    tower, lat, lon, enb, cell, timestamp = row
+
+    kml = simplekml.Kml()
+
+    # Point for MSISDN/tower
+    pnt = kml.newpoint(name=f"592{msisdn}", coords=[(lon, lat)])
+    pnt.description = f"{tower}\neNodeB: {enb} | Cell: {cell}\nTime: {timestamp}"
+    pnt.style.iconstyle.icon.href = "http://maps.google.com/mapfiles/kml/shapes/target.png"
+    pnt.style.labelstyle.scale = 1.2
+
+    # Sector polygon
+    sector = kml.newpolygon(name=f"{tower} Sector")
+    sector.outerboundaryis = create_sector(lat, lon, azimuth=0, beamwidth=120, radius_km=1.0)
+    sector.style.polystyle.color = simplekml.Color.changealphaint(100, simplekml.Color.blue)
+    sector.style.linestyle.color = simplekml.Color.white
+
+    kml.savekmz(output)
+    print(f"✅ KMZ saved: {output}")
+
+def create_sector(lat, lon, azimuth, beamwidth, radius_km):
+    points = [(lon, lat)]
+    start = azimuth - beamwidth / 2
+    end = azimuth + beamwidth / 2
+    step = max(1, int(beamwidth / 30))
+    for angle in range(int(start), int(end) + 1, step):
+        d = distance(kilometers=radius_km).destination((lat, lon), angle)
+        points.append((d.longitude, d.latitude))
+    points.append((lon, lat))
+    return points

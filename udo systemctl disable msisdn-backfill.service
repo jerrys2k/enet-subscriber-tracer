@@ -1,0 +1,71 @@
+May 29 12:16:24 ubuntu systemd[1]: Started MSISDN RADIUS Backfill Processor.
+May 29 12:16:24 ubuntu systemd[4142636]: [0;1;31m[0;1;39m[0;1;31mmsisdn-backfill.service: Changing to the requested working directory failed: Permission denied[0m
+May 29 12:16:24 ubuntu systemd[4142636]: [0;1;31m[0;1;39m[0;1;31mmsisdn-backfill.service: Failed at step CHDIR spawning /home/enet/msisdn_checker/venv/bin/python: Permission denied[0m
+May 29 12:16:24 ubuntu systemd[1]: [0;1;39m[0;1;31m[0;1;39mmsisdn-backfill.service: Main process exited, code=exited, status=200/CHDIR[0m
+May 29 12:16:24 ubuntu systemd[1]: [0;1;38;5;185m[0;1;39m[0;1;38;5;185mmsisdn-backfill.service: Failed with result 'exit-code'.[0m
+May 29 12:16:24 ubuntu systemd[1]: msisdn-backfill.service: Scheduled restart job, restart counter is at 1.
+May 29 12:16:24 ubuntu systemd[1]: Stopped MSISDN RADIUS Backfill Processor.
+May 29 12:16:24 ubuntu systemd[1]: Started MSISDN RADIUS Backfill Processor.
+May 29 12:16:24 ubuntu systemd[4142673]: [0;1;31m[0;1;39m[0;1;31mmsisdn-backfill.service: Changing to the requested working directory failed: Permission denied[0m
+May 29 12:16:24 ubuntu systemd[4142673]: [0;1;31m[0;1;39m[0;1;31mmsisdn-backfill.service: Failed at step CHDIR spawning /home/enet/msisdn_checker/venv/bin/python: Permission denied[0m
+May 29 12:16:24 ubuntu systemd[1]: [0;1;39m[0;1;31m[0;1;39mmsisdn-backfill.service: Main process exited, code=exited, status=200/CHDIR[0m
+May 29 12:16:24 ubuntu systemd[1]: [0;1;38;5;185m[0;1;39m[0;1;38;5;185mmsisdn-backfill.service: Failed with result 'exit-code'.[0m
+May 29 12:16:24 ubuntu systemd[1]: msisdn-backfill.service: Scheduled restart job, restart counter is at 2.
+May 29 12:16:24 ubuntu systemd[1]: Stopped MSISDN RADIUS Backfill Processor.
+May 29 12:16:24 ubuntu systemd[1]: Started MSISDN RADIUS Backfill Processor.
+May 29 12:16:24 ubuntu systemd[4142701]: [0;1;31m[0;1;39m[0;1;31mmsisdn-backfill.service: Changing to the requested working directory failed: Permission denied[0m
+May 29 12:16:24 ubuntu systemd[4142701]: [0;1;31m[0;1;39m[0;1;31mmsisdn-backfill.service: Failed at step CHDIR spawning /home/enet/msisdn_checker/venv/bin/python: Permission denied[0m
+May 29 12:16:24 ubuntu systemd[1]: [0;1;39m[0;1;31m[0;1;39mmsisdn-backfill.service: Main process exited, code=exited, status=200/CHDIR[0m
+May 29 12:16:24 ubuntu systemd[1]: [0;1;38;5;185m[0;1;39m[0;1;38;5;185mmsisdn-backfill.service: Failed with result 'exit-code'.[0m
+May 29 12:16:25 ubuntu systemd[1]: msisdn-backfill.service: Scheduled restart job, restart counter is at 3.
+May 29 12:16:25 ubuntu systemd[1]: Stopped MSISDN RADIUS Backfill Processor.
+May 29 12:16:25 ubuntu systemd[1]: Started MSISDN RADIUS Backfill Processor.
+May 29 12:16:25 ubuntu systemd[4142735]: [0;1;31m[0;1;39m[0;1;31mmsisdn-backfill.service: Changing to the requested working directory failed: Permission denied[0m
+May 29 12:16:25 ubuntu systemd[4142735]: [0;1;31m[0;1;39m[0;1;31mmsisdn-backfill.service: Failed at step CHDIR spawning /home/enet/msisdn_checker/venv/bin/python: Permission denied[0m
+May 29 12:16:25 ubuntu systemd[1]: [0;1;39m[0;1;31m[0;1;39mmsisdn-backfill.service: Main process exited, code=exited, status=200/CHDIR[0m
+May 29 12:16:25 ubuntu systemd[1]: [0;1;38;5;185m[0;1;39m[0;1;38;5;185mmsisdn-backfill.service: Failed with result 'exit-code'.[0m
+May 29 12:16:25 ubuntu systemd[1]: msisdn-backfill.service: Scheduled restart job, restart counter is at 4.
+May 29 12:16:25 ubuntu systemd[1]: Stopped MSISDN RADIUS Backfill Processor.
+May 29 12:16:25 ubuntu systemd[1]: Started MSISDN RADIUS Backfill Processor.
+May 29 12:16:25 ubuntu systemd[4142761]: [0;1;31m[0;1;39m[0;1;31mmsisdn-backfill.service: Changing to the requested working directory failed: Permission denied[0m
+May 29 12:16:25 ubuntu systemd[4142761]: [0;1;31m[0;1;39m[0;1;31mmsisdn-backfill.service: Failed at step CHDIR spawning /home/enet/msisdn_checker/venv/bin/python: Permission denied[0m
+May 29 12:16:25 ubuntu systemd[1]: [0;1;39m[0;1;31m[0;1;39mmsisdn-backfill.service: Main process exited, code=exited, status=200/CHDIR[0m
+May 29 12:16:25 ubuntu systemd[1]: [0;1;38;5;185m[0;1;39m[0;1;38;5;185mmsisdn-backfill.service: Failed with result 'exit-code'.[0m
+May 29 12:16:25 ubuntu systemd[1]: msisdn-backfill.service: Scheduled restart job, restart counter is at 5.
+May 29 12:16:25 ubuntu systemd[1]: Stopped MSISDN RADIUS Backfill Processor.
+May 29 12:16:25 ubuntu systemd[1]: [0;1;38;5;185m[0;1;39m[0;1;38;5;185mmsisdn-backfill.service: Start request repeated too quickly.[0m
+May 29 12:16:25 ubuntu systemd[1]: [0;1;38;5;185m[0;1;39m[0;1;38;5;185mmsisdn-backfill.service: Failed with result 'exit-code'.[0m
+May 29 12:16:25 ubuntu systemd[1]: [0;1;31m[0;1;39m[0;1;31mFailed to start MSISDN RADIUS Backfill Processor.[0m
+May 29 12:17:25 ubuntu systemd[1]: Started MSISDN RADIUS Backfill Processor.
+May 29 12:17:26 ubuntu systemd[1]: [0;1;39m[0;1;31m[0;1;39mmsisdn-backfill.service: Main process exited, code=exited, status=1/FAILURE[0m
+May 29 12:17:26 ubuntu systemd[1]: [0;1;38;5;185m[0;1;39m[0;1;38;5;185mmsisdn-backfill.service: Failed with result 'exit-code'.[0m
+May 29 12:17:26 ubuntu systemd[1]: msisdn-backfill.service: Consumed 2.140s CPU time.
+May 29 12:17:26 ubuntu systemd[1]: msisdn-backfill.service: Scheduled restart job, restart counter is at 1.
+May 29 12:17:26 ubuntu systemd[1]: Stopped MSISDN RADIUS Backfill Processor.
+May 29 12:17:26 ubuntu systemd[1]: msisdn-backfill.service: Consumed 2.140s CPU time.
+May 29 12:17:26 ubuntu systemd[1]: Started MSISDN RADIUS Backfill Processor.
+May 29 12:17:26 ubuntu systemd[1]: [0;1;39m[0;1;31m[0;1;39mmsisdn-backfill.service: Main process exited, code=exited, status=1/FAILURE[0m
+May 29 12:17:26 ubuntu systemd[1]: [0;1;38;5;185m[0;1;39m[0;1;38;5;185mmsisdn-backfill.service: Failed with result 'exit-code'.[0m
+May 29 12:17:26 ubuntu systemd[1]: msisdn-backfill.service: Consumed 2.085s CPU time.
+May 29 12:17:27 ubuntu systemd[1]: msisdn-backfill.service: Scheduled restart job, restart counter is at 2.
+May 29 12:17:27 ubuntu systemd[1]: Stopped MSISDN RADIUS Backfill Processor.
+May 29 12:17:27 ubuntu systemd[1]: msisdn-backfill.service: Consumed 2.085s CPU time.
+May 29 12:17:27 ubuntu systemd[1]: Started MSISDN RADIUS Backfill Processor.
+May 29 12:17:27 ubuntu systemd[1]: [0;1;39m[0;1;31m[0;1;39mmsisdn-backfill.service: Main process exited, code=exited, status=1/FAILURE[0m
+May 29 12:17:27 ubuntu systemd[1]: [0;1;38;5;185m[0;1;39m[0;1;38;5;185mmsisdn-backfill.service: Failed with result 'exit-code'.[0m
+May 29 12:17:27 ubuntu systemd[1]: msisdn-backfill.service: Consumed 2.223s CPU time.
+May 29 12:17:27 ubuntu systemd[1]: msisdn-backfill.service: Scheduled restart job, restart counter is at 3.
+May 29 12:17:27 ubuntu systemd[1]: Stopped MSISDN RADIUS Backfill Processor.
+May 29 12:17:27 ubuntu systemd[1]: msisdn-backfill.service: Consumed 2.223s CPU time.
+May 29 12:17:27 ubuntu systemd[1]: Started MSISDN RADIUS Backfill Processor.
+May 29 12:17:28 ubuntu systemd[1]: [0;1;39m[0;1;31m[0;1;39mmsisdn-backfill.service: Main process exited, code=exited, status=1/FAILURE[0m
+May 29 12:17:28 ubuntu systemd[1]: [0;1;38;5;185m[0;1;39m[0;1;38;5;185mmsisdn-backfill.service: Failed with result 'exit-code'.[0m
+May 29 12:17:28 ubuntu systemd[1]: msisdn-backfill.service: Consumed 2.061s CPU time.
+May 29 12:17:28 ubuntu systemd[1]: msisdn-backfill.service: Scheduled restart job, restart counter is at 4.
+May 29 12:17:28 ubuntu systemd[1]: Stopped MSISDN RADIUS Backfill Processor.
+May 29 12:17:28 ubuntu systemd[1]: msisdn-backfill.service: Consumed 2.061s CPU time.
+May 29 12:17:28 ubuntu systemd[1]: Started MSISDN RADIUS Backfill Processor.
+May 29 12:17:29 ubuntu systemd[1]: [0;1;39m[0;1;31m[0;1;39mmsisdn-backfill.service: Main process exited, code=exited, status=1/FAILURE[0m
+May 29 12:17:29 ubuntu systemd[1]: [0;1;38;5;185m[0;1;39m[0;1;38;5;185mmsisdn-backfill.service: Failed with result 'exit-code'.[0m
+May 29 12:17:29 ubuntu systemd[1]: msisdn-backfill.service: Consumed 2.000s CPU time.
+May 29 12:17:29 ubuntu systemd[1]: msisdn-backfi

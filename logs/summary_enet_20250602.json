@@ -1,0 +1,20 @@
+{
+  "metadata": {
+    "script": "backfill_status.sh",
+    "version": "2.3",
+    "timestamp": "2025-06-02T17:19:00Z",
+    "log_dir": "logs"
+  },
+  "stats": {
+    "inserted_today": "count4501551(1row)",
+    "total_entries": "1655021",
+    "active_pids": []
+  },
+  "latest_logs": [
+    "[2025-06-02 17:19:06] [INFO] Fetching recent audit summary...",
+    "[2025-06-02 17:19:06] [INFO] Generating per-PGW summary...",
+    "[2025-06-02 17:19:06] [INFO] Checking for stale processes...",
+    "[2025-06-02 17:19:06] [SUCCESS] ✔ No stale processes found",
+    "[2025-06-02 17:19:06] [INFO] Generating JSON summary..."
+  ]
+}

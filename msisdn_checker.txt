@@ -1,0 +1,388 @@
+.
+├── app.bak
+├── app.py
+├── app.py.bak
+├── app.py.save
+├── auto_git_backup.sh
+├── dashboard_engine.py
+├── data
+│   ├── dashboard_metrics.xlsx
+│   ├── E_Networks_EPT_2025APR25.xlsx
+│   ├── input.xlsx
+│   ├── nmp_master.xlsx
+│   ├── output.xlsx
+│   ├── ported_history.json
+│   ├── ported_numbers.json
+│   └── ranges.csv
+├── .env
+├── fix_viewer_log_table.sh
+├── .git
+│   ├── branches
+│   ├── COMMIT_EDITMSG
+│   ├── config
+│   ├── description
+│   ├── FETCH_HEAD
+│   ├── HEAD
+│   ├── hooks
+│   │   ├── applypatch-msg.sample
+│   │   ├── commit-msg.sample
+│   │   ├── fsmonitor-watchman.sample
+│   │   ├── post-update.sample
+│   │   ├── pre-applypatch.sample
+│   │   ├── pre-commit.sample
+│   │   ├── pre-merge-commit.sample
+│   │   ├── prepare-commit-msg.sample
+│   │   ├── pre-push.sample
+│   │   ├── pre-rebase.sample
+│   │   ├── pre-receive.sample
+│   │   ├── push-to-checkout.sample
+│   │   └── update.sample
+│   ├── index
+│   ├── info
+│   │   ├── exclude
+│   │   └── refs
+│   ├── logs
+│   │   ├── HEAD
+│   │   └── refs
+│   │       ├── heads
+│   │       │   └── main
+│   │       └── remotes
+│   │           └── origin
+│   │               └── main
+│   ├── objects
+│   │   ├── 00
+│   │   │   └── 4b4175a4813bb7937be5d04c642e5e5a291cdf
+│   │   ├── 04
+│   │   │   ├── 1337a161587a76741405e222b02253b2c9a88f
+│   │   │   └── c8205865fc0e69fdb13395c0a7a4022f47ea63
+│   │   ├── 06
+│   │   │   └── 28e2e0446c08178b27e494ab20ee01fcc7f1dd
+│   │   ├── 08
+│   │   │   └── 00c083254ab0b8eeb385a41f4bc6e6e00645bb
+│   │   ├── 0b
+│   │   │   └── ce173a5ebd50c94b10d29b15b97217a41dc905
+│   │   ├── 13
+│   │   │   └── a39ee6b25636ff3da7394d257bfa017d253977
+│   │   ├── 14
+│   │   │   ├── b17479dc993ebfa30e57741ba3dde0ebe4d13f
+│   │   │   └── c92c92670a299d5857f2895d827e6cb5e7432b
+│   │   ├── 15
+│   │   │   └── f290c4e02f808de629f3739d0af4a23ce26fb7
+│   │   ├── 17
+│   │   │   └── 6337bb2933b44fb74820753a4c963869523ce6
+│   │   ├── 19
+│   │   │   └── 25e5249aca4f34667fccc4a599b4d74e9797cd
+│   │   ├── 1c
+│   │   │   └── 6d4432518f793c63ceaf18d02d72ff1ef82a42
+│   │   ├── 1d
+│   │   │   ├── 1337bd4b8b53c4f1fe89f7ca73f2fb8d85b8e5
+│   │   │   └── 4c8f87774de4b997d731e10298b6174203f1de
+│   │   ├── 1e
+│   │   │   └── b8570fda74bf4918a7328bf86e9c845bc47000
+│   │   ├── 20
+│   │   │   └── 455db528cba460541b5507ac31aca2150471c5
+│   │   ├── 22
+│   │   │   ├── 763774640da3d0c1674820e6f978fc85ee1ae5
+│   │   │   └── eb98834cc520e0ddc3fc19878c78b97f834a8f
+│   │   ├── 24
+│   │   │   ├── 7740cfa5033cbe1420642ee75fe6189f70019d
+│   │   │   └── babe0bb43a2b073717c52dcdf21876c40083f8
+│   │   ├── 26
+│   │   │   └── 7ba8bf6e7c641a9010b376e48e30f97a62fca1
+│   │   ├── 27
+│   │   │   └── be2887f2c8b343d8ec48660890327070794f39
+│   │   ├── 2c
+│   │   │   └── 0154844736c6284674a7540c55b2e307cefce9
+│   │   ├── 2e
+│   │   │   ├── 145560081a45ed7dc414205e7197ee1203b66c
+│   │   │   └── 25485917fce781d2804b5cf47668304eab719e
+│   │   ├── 32
+│   │   │   └── d6f83207f3235fbcb564f238e3a4eaa0eaeea7
+│   │   ├── 34
+│   │   │   └── 7f5a0bedb9ea1f7aeffbae0ed466feb57b72fd
+│   │   ├── 3b
+│   │   │   └── c6aa5c0a38bb63e346ed51c62025871d0e0070
+│   │   ├── 3c
+│   │   │   └── 2686d288f42d3cb0ab750b4e8948aac0b64dd6
+│   │   ├── 3f
+│   │   │   └── 0adf98b5a75bb056dd5702bc92943f391c03d3
+│   │   ├── 41
+│   │   │   └── 7241630e31a9ffc50484ac40b15fd3d6a3e49f
+│   │   ├── 43
+│   │   │   ├── 56f2f352f7c0df46cc611b9020246717d70bdd
+│   │   │   └── 5955030726e83b263a55558152234f9f441a50
+│   │   ├── 44
+│   │   │   ├── 045bba658a54b3df388e91e796a15b958094ef
+│   │   │   └── fa7240fb9861b17351c38d8cb4e1637c807ec3
+│   │   ├── 46
+│   │   │   ├── 43a0f5b59e3b2894320067792cd6548d292c83
+│   │   │   └── 457fb7e53e34384c8bc9463ab12cee972a6aa0
+│   │   ├── 47
+│   │   │   └── af7759da84bf4a0eb0cb248c7db577628cdb2f
+│   │   ├── 48
+│   │   │   └── 032fc880bac7edb79be336da712b08b87202df
+│   │   ├── 4d
+│   │   │   ├── 582039d0250ea2728627d9bed7c64397cba82a
+│   │   │   └── f7bc09c859f1703b6ccd5174a057ee5fc0bf7d
+│   │   ├── 4e
+│   │   │   └── cf5f46d319ec4f3c2374c0353a6e2cd6471021
+│   │   ├── 4f
+│   │   │   └── 0ef26a7df9c9568026252477aa255666b32ddc
+│   │   ├── 51
+│   │   │   └── b9ed681747fe19a6d4a34b6d334482a9818414
+│   │   ├── 52
+│   │   │   └── 5cf3f4d5afc2da6a40c5172b5e9552c7afcc83
+│   │   ├── 53
+│   │   │   ├── 08d06659e13848f0dce32eba56d22f0d5019f1
+│   │   │   └── 6fa7b061b649366b2af5cb22c95f792dc2a590
+│   │   ├── 54
+│   │   │   ├── 146db1077c6c82993c9db273fc3126604b79cd
+│   │   │   └── 939229d7399f0131c80b84c63bd431219df205
+│   │   ├── 57
+│   │   │   └── f8e9934eca76454ee8ba39068fe3e174707834
+│   │   ├── 58
+│   │   │   └── 308d855bd3968020bf1a2a55eb1a20ea358756
+│   │   ├── 59
+│   │   │   └── 7794ed7f63a083f2892261a6bf9d4d553ab732
+│   │   ├── 5a
+│   │   │   └── 2d8394ff5173448d2bc7d17f1c70a692cfdd1c
+│   │   ├── 5b
+│   │   │   ├── 6f771aecb10f718f0cceaf80534f493acf9c68
+│   │   │   └── a96bdef82609b1131cbdbc135dc289aff0e5dd
+│   │   ├── 5f
+│   │   │   └── 950b20fcc590ee68aa5e1e00cceb96684fc53a
+│   │   ├── 63
+│   │   │   └── ed80fc2df9c90b1887e102e7a0f177e0a695b3
+│   │   ├── 64
+│   │   │   └── a247eec46ce4e00296422fe728897270ed680f
+│   │   ├── 65
+│   │   │   ├── 65b49e506b1344ae9615fa1890333a11ba965a
+│   │   │   └── c6ca095bb0c4233424209e8a6b7c7615aacb77
+│   │   ├── 66
+│   │   │   └── aa923cef87a0bce5654ff270faf8d0da1651a0
+│   │   ├── 69
+│   │   │   └── 886bc2a5bf3fc9cd36df1e418c12fc520c30de
+│   │   ├── 6a
+│   │   │   ├── 21e2df99195304a052f3b0df9f4e34d74dbcc8
+│   │   │   └── e81f3acc779cf0608ef19b513baf70b454fd0f
+│   │   ├── 6d
+│   │   │   └── 60317d59d4bc7bd56187ba7a4a9b6e186ea164
+│   │   ├── 71
+│   │   │   ├── c4c3e44883014d25e24d1087371034dcc62714
+│   │   │   └── e543d2b509c9710c37d65ecdfcee0140e558ed
+│   │   ├── 73
+│   │   │   └── c587316b7b9b4df6f222bb28ae2841d690b29d
+│   │   ├── 76
+│   │   │   └── 79028240fd9ba898d660e1cddc5dbd416f7c62
+│   │   ├── 80
+│   │   │   └── 419525496e3ea72d91324a416f00441f443176
+│   │   ├── 82
+│   │   │   └── 29f8c73074fab1bfed9ef9e39f29e3cdf4ab53
+│   │   ├── 83
+│   │   │   └── 151a51ccff4023daafd283488bbc8d0c22d1b5
+│   │   ├── 85
+│   │   │   ├── 56ec231bd5acf6beccfcc5e147de3971496ad4
+│   │   │   └── fe92692d07679b52c148a03cb0924a4136fa96
+│   │   ├── 87
+│   │   │   └── d22a8a771261d5b4cbfb9a70f3dfe833671967
+│   │   ├── 8b
+│   │   │   └── f8dae0b287c934595e64190dcf45ebc47677d0
+│   │   ├── 8d
+│   │   │   └── d38b4b1e128e34b3ead310beff484e9da5c0e2
+│   │   ├── 8f
+│   │   │   └── 733c28c6595f5accf9955f45f0e8e1a834b182
+│   │   ├── 92
+│   │   │   └── bdeb5fc79c42f3f4cd78ee11bc948a8d667c24
+│   │   ├── 93
+│   │   │   ├── f91f94287ee0e866bc675a7b5bd838510efe9d
+│   │   │   └── fc7c78595c55c17f611697ea4a5fb5e3d481d2
+│   │   ├── 94
+│   │   │   └── f1fc59f2419ad9e27e656f1dec97c04a16d296
+│   │   ├── 99
+│   │   │   └── 8b3edcbbee29318bc7c1c44783227a7beae346
+│   │   ├── 9c
+│   │   │   └── d3bdbeca1d087b9f3801abd08385a3d0f7515c
+│   │   ├── a1
+│   │   │   └── 59d5e5c606fed5c1b95ea3567ea96160ad8d8a
+│   │   ├── a7
+│   │   │   └── fbd7a33561d9eaffceba3c1533e3128bd1134c
+│   │   ├── a8
+│   │   │   └── 0b7da08b10873f3200ffaffc383cfb4c045e42
+│   │   ├── ac
+│   │   │   ├── 367c22b11ceec6de7617dc8b657d6f64b76c5d
+│   │   │   └── a9f9db35c19356d156eeef7dfbd590a093afdd
+│   │   ├── b0
+│   │   │   └── 6642320d8a4178e9f91db20e8ed2b39ea6ec4c
+│   │   ├── b2
+│   │   │   └── 9cf67234299a602da72d1b30a8949b62f92c9d
+│   │   ├── b7
+│   │   │   └── 3e764eb0707edc864817f3d514392433289c7f
+│   │   ├── b8
+│   │   │   └── e7020b3ef593ff18c4c0b4ba148ff612bd2bbf
+│   │   ├── b9
+│   │   │   └── db698236e70786a0b6049f1af96a4ef7095d34
+│   │   ├── bc
+│   │   │   ├── 809b7dd9e477bd72c31751e4749d5a9ee6ec4b
+│   │   │   └── 82bf5a0dc837e1ea1c494c89c62a4d1baf6fe4
+│   │   ├── bf
+│   │   │   └── 4b3c1c47fbf5fbe1be54749593b65fe506380e
+│   │   ├── c0
+│   │   │   └── 0e028ad7ad1b498e4c3f9ca46e121b2bbb67d0
+│   │   ├── c1
+│   │   │   └── 6ac048e3596ed56f1ee6e1e0a1154abc8b1493
+│   │   ├── c6
+│   │   │   └── a96ed5fd66621db07d08cb7b6eb03ce20c2fc1
+│   │   ├── cd
+│   │   │   └── 988e776ac66a095ae1845f522a69716f6da5bd
+│   │   ├── d0
+│   │   │   └── cccd401c34288c4895c18ca7a27730b5fca6a3
+│   │   ├── d4
+│   │   │   ├── 57f8cba963b62dac7186059bfebe2ee2f8ebf4
+│   │   │   └── b2b947783913cd4657714afaf910d980dff0b6
+│   │   ├── d7
+│   │   │   └── ad2f1e50dc074f9d8246756251e222e6a08fb0
+│   │   ├── d9
+│   │   │   └── e324fd7598248a2d9aa90c7fedd011c609f0cf
+│   │   ├── da
+│   │   │   └── 5b132f11978b375b82eeb5377b79ccc27aa9cd
+│   │   ├── db
+│   │   │   └── d8ccbfd8761b0c7979737d33078244c4144b52
+│   │   ├── dd
+│   │   │   └── 9cb1fbc133590731e5a599e073ec59ea7786a5
+│   │   ├── de
+│   │   │   └── b653436486d351f7764ce64d108e7b4e51755b
+│   │   ├── e3
+│   │   │   └── 1f9eda9120ab7b35c57c25ce06923058c4ad11
+│   │   ├── e4
+│   │   │   └── 98fde857aaf218d9e5038f25cebfda4fab4a78
+│   │   ├── e6
+│   │   │   └── a9bfb6f1c53fef81038ec51fe1b0796931ff96
+│   │   ├── e9
+│   │   │   ├── 7c78071be179926191e82a9feb9d16e885018b
+│   │   │   └── 859340385d468c0df1ced54c1ad9d0ba4ea901
+│   │   ├── ea
+│   │   │   └── e5903f6a9c6d2e550b182f0f205e62a6907bf7
+│   │   ├── ec
+│   │   │   └── b92357f24122a9cf20c6b1107253fdc925fe20
+│   │   ├── f2
+│   │   │   └── 484fed4f71d40dbfc8a65a03333d005aa39171
+│   │   ├── f4
+│   │   │   └── 90002e638e81a4e0382cc6f5b3f977352a826d
+│   │   ├── fc
+│   │   │   ├── 29ac3656ecdd4d2cd5be4845bbcd4bc5ad0899
+│   │   │   └── 5f408bd0762effd4e25f2bd6048020511bdb8a
+│   │   ├── info
+│   │   │   ├── commit-graph
+│   │   │   └── packs
+│   │   └── pack
+│   │       ├── pack-bbde52cf35cf0e3ad8d00b6424e4bec66e0177be.idx
+│   │       └── pack-bbde52cf35cf0e3ad8d00b6424e4bec66e0177be.pack
+│   ├── ORIG_HEAD
+│   ├── packed-refs
+│   └── refs
+│       ├── heads
+│       │   └── main
+│       ├── remotes
+│       │   └── origin
+│       │       └── main
+│       └── tags
+│           ├── snapshot-20250504-1759
+│           ├── snapshot-20250504-1800
+│           ├── snapshot-20250505-0000
+│           ├── snapshot-20250505-0600
+│           ├── snapshot-20250505-1200
+│           ├── snapshot-20250505-1800
+│           ├── snapshot-20250506-0000
+│           ├── snapshot-20250506-0600
+│           ├── snapshot-20250506-1200
+│           ├── snapshot-20250506-1800
+│           ├── snapshot-20250507-0000
+│           ├── snapshot-20250507-0600
+│           ├── snapshot-20250507-1200
+│           ├── snapshot-20250507-1800
+│           ├── snapshot-20250508-0000
+│           ├── snapshot-20250508-0600
+│           ├── snapshot-20250508-1200
+│           ├── snapshot-20250508-1800
+│           ├── snapshot-20250509-0000
+│           ├── snapshot-20250509-0600
+│           ├── snapshot-20250509-1200
+│           ├── snapshot-20250509-1800
+│           ├── snapshot-20250510-0000
+│           ├── snapshot-20250510-0600
+│           ├── snapshot-20250510-1200
+│           ├── snapshot-20250510-1800
+│           ├── snapshot-20250511-0000
+│           ├── snapshot-20250511-0600
+│           ├── snapshot-20250511-1200
+│           ├── snapshot-20250511-1800
+│           ├── snapshot-20250512-0000
+│           ├── snapshot-20250512-0600
+│           ├── snapshot-20250512-1200
+│           ├── snapshot-20250512-1800
+│           ├── snapshot-20250513-0000
+│           ├── snapshot-20250513-0600
+│           ├── snapshot-20250513-1200
+│           ├── snapshot-20250513-1800
+│           ├── snapshot-20250514-0000
+│           ├── snapshot-20250514-0600
+│           ├── snapshot-20250514-1200
+│           ├── snapshot-20250514-1800
+│           ├── snapshot-20250515-0000
+│           ├── snapshot-20250515-0600
+│           ├── snapshot-20250515-1200
+│           ├── snapshot-20250515-1800
+│           └── v1.0.0
+├── .gitignore
+├── init_viewer_logs_db.py
+├── logs
+│   ├── app.log
+│   ├── git_backup.log
+│   ├── lookup_logs.csv
+│   ├── salesforce.log
+│   ├── updates.log
+│   ├── viewer_logs.db
+│   └── viewer_nmp_logs.db
+├── msisdn_checker.txt
+├── package.json
+├── package-lock.json
+├── requirements.txt
+├── rewrite_templates.py
+├── start.sh
+├── static
+│   ├── enet_logo.jpeg
+│   ├── enet_logo.png
+│   └── favicon.ico
+├── templates
+│   ├── admin
+│   │   ├── dashboard.htm
+│   │   ├── dashboard.html
+│   │   ├── dashboard.html.save
+│   │   ├── dashboard.hty
+│   │   ├── partials
+│   │   │   └── pdf_template.html
+│   │   └── pdf_template.html
+│   ├── index.html
+│   ├── index.htmly
+│   ├── login.html
+│   ├── login.html.save
+│   ├── public
+│   │   ├── checker.html
+│   │   ├── login.html
+│   │   ├── lookup.html
+│   │   └── static
+│   │       └── style.css
+│   └── tools
+│       └── helpers.py
+├── test_segments.sh
+├── Tools
+│   ├── build_nmp_master.py
+│   ├── cell_mapper.py
+│   ├── cell_mapper.pynn
+│   ├── helpers.py
+│   ├── logs
+│   └── parse_radius_logs.py
+├── update_template_paths.py
+└── viewer_nmp_logs.db
+
+127 directories, 258 files

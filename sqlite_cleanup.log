@@ -1,0 +1,47 @@
+🔷 Starting SQLite to PostgreSQL migration - Mon Jun  2 04:35:13 PM UTC 2025
+🔷 Timestamp: 20250602_163513
+🔍 Checking PostgreSQL connection...
+❌ ERROR: Could not connect to PostgreSQL
+🔷 Starting SQLite to PostgreSQL cleanup at Mon Jun  2 04:39:23 PM UTC 2025
+🔷 Target PostgreSQL DB: msisdn_trace@localhost:5432
+🔍 Checking PostgreSQL connection...
+✅ PostgreSQL connection OK
+🔄 Migrating logs/trace.db to PostgreSQL...
+⚠️  logs/trace.db not found, skipping
+🔄 Migrating data/trace_db.sqlite to PostgreSQL...
+ERROR:  syntax error at or near "PRAGMA"
+LINE 1: PRAGMA foreign_keys=OFF;
+        ^
+✅ Migrated: data/trace_db.sqlite
+🧹 Updating code references...
+⚠️  Patching ./app.py
+⚠️  Patching ./cleanup_sqlite_legacy.sh
+⚠️  Patching ./Tools/radius_watcher.py
+⚠️  Patching ./trace_audit_fast.py
+📦 Archiving SQLite files...
+✅ Archived data/trace_db.sqlite
+🔍 Verifying cleanup...
+grep: ./Tools/__pycache__/helpers.cpython-310.pyc: binary file matches
+❌ Remaining SQLite references found:
+./app.py:1024:    db_path = os.path.join(os.path.dirname(__file__), "logs", "trace.db")
+./cleanup_sqlite_legacy.sh:9:SQLITE_DB_PATHS=("logs/trace.db" "data/trace_db.sqlite")
+./cleanup_sqlite_legacy.sh:88:  grep -rl "trace.db" . --exclude-dir="$ARCHIVE_DIR" | while read -r file; do
+./archive/sqlite_legacy/export_kmz_snippet.py:24:    db_path = os.path.join(os.path.dirname(__file__), "logs", "trace.db")
+./archive/sqlite_legacy/kmz_exporter.py:18:def generate_kmz(msisdn, db_path="logs/trace.db", output_path="trace_export.kmz"):
+./archive/sqlite_legacy/parse_radius_logs_debug.py:17:DB_PATH = "logs/trace.db"
+./archive/sqlite_legacy/trace_audit.py:8:DB_PATH = "data/trace_db.sqlite"
+./archive/sqlite_legacy/kmz_exporter.pyy:5:def generate_kmz(msisdn, db_path="logs/trace.db", output="export.kmz"):
+./archive/sqlite_legacy/reset_daily.sh:11:sqlite3 data/trace_db.sqlite <<EOF
+./archive/sqlite_legacy/init_trace_db.py:3:conn = sqlite3.connect("logs/trace.db")
+./archive/sqlite_legacy/init_trace_db.py:22:print("✅ trace_db.sqlite initialized.")
+./archive/sqlite_legacy/backfill_radius_history.pynnyo:12:DB_PATH = "logs/trace.db"
+./archive/sqlite_legacy/prune_old_traces.py:5:DB_PATH = os.path.join(os.path.dirname(__file__), "..", "logs", "trace.db")
+./archive/sqlite_legacy/backfill_radius_history.pyo:15:DB_PATH = "logs/trace.db"
+./sqlite_cleanup.log:9:🔄 Migrating logs/trace.db to PostgreSQL...
+./sqlite_cleanup.log:10:⚠️  logs/trace.db not found, skipping
+./sqlite_cleanup.log:11:🔄 Migrating data/trace_db.sqlite to PostgreSQL...
+./sqlite_cleanup.log:15:✅ Migrated: data/trace_db.sqlite
+./sqlite_cleanup.log:22:✅ Archived data/trace_db.sqlite
+./Tools/radius_watcher.py:27:    conn = sqlite3.connect("data/trace_db.sqlite")
+./logs/prune.log:3:    conn = sqlite3.connect("data/trace_db.sqlite")
+./trace_audit_fast.py:10:DB_PATH = "data/trace_db.sqlite"

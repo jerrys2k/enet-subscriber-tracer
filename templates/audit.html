@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit Logs - MSISDN Checker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>tailwind.config = { theme: { extend: { colors: { enet: '#f7941d' } } } }</script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <!-- Mobile Header -->
+  <div class="bg-gradient-to-r from-gray-800 to-gray-900 text-white p-4 sticky top-0 z-10 shadow-lg">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="/admin" class="text-white"><i class="fas fa-arrow-left text-xl"></i></a>
+        <div>
+          <h1 class="font-bold text-lg">📜 Audit Logs</h1>
+          <p class="text-xs text-gray-400">6-month retention</p>
+        </div>
+      </div>
+      <a href="/logout" class="bg-white/20 px-3 py-1 rounded-lg text-sm">
+        <i class="fas fa-sign-out-alt"></i>
+      </a>
+    </div>
+  </div>
+
+  <div class="p-4 max-w-4xl mx-auto">
+    <!-- Filters -->
+    <form method="GET" class="bg-white rounded-xl shadow-md p-4 mb-4">
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <input type="date" name="date" value="{{ date_filter }}" 
+          class="px-3 py-2 border rounded-lg text-sm" placeholder="Date">
+        <input type="text" name="user" value="{{ user_filter }}" placeholder="Username"
+          class="px-3 py-2 border rounded-lg text-sm">
+        <select name="action" class="px-3 py-2 border rounded-lg text-sm">
+          <option value="">All Actions</option>
+          <option value="LOGIN" {% if action_filter == 'LOGIN' %}selected{% endif %}>Login</option>
+          <option value="QUERY" {% if action_filter == 'QUERY' %}selected{% endif %}>Query</option>
+          <option value="USER" {% if action_filter == 'USER' %}selected{% endif %}>User Mgmt</option>
+        </select>
+        <div class="flex gap-1">
+          <button type="submit" class="flex-1 bg-blue-500 text-white px-3 py-2 rounded-lg text-sm">
+            <i class="fas fa-search"></i>
+          </button>
+          <a href="/audit" class="bg-gray-400 text-white px-3 py-2 rounded-lg text-sm">
+            <i class="fas fa-times"></i>
+          </a>
+        </div>
+      </div>
+    </form>
+
+    <!-- Log List -->
+    <div class="space-y-2">
+      {% for log in logs %}
+      <div class="bg-white rounded-lg shadow p-3 text-sm 
+        {% if 'FAILED' in log.action %}border-l-4 border-red-500
+        {% elif 'SUCCESS' in log.action %}border-l-4 border-green-500
+        {% elif 'QUERY' in log.action %}border-l-4 border-blue-500
+        {% else %}border-l-4 border-gray-300{% endif %}">
+        <div class="flex justify-between items-start">
+          <div>
+            <span class="font-medium 
+              {% if 'LOGIN SUCCESS' in log.action %}text-green-700
+              {% elif 'FAILED' in log.action or 'BLOCKED' in log.action %}text-red-700
+              {% elif 'QUERY' in log.action %}text-blue-700
+              {% else %}text-gray-700{% endif %}">
+              {{ log.action }}
+            </span>
+            <span class="text-gray-500 ml-2">{{ log.username }}</span>
+          </div>
+          <span class="text-xs text-gray-400">{{ log.timestamp[:16] }}</span>
+        </div>
+        {% if log.details %}
+        <p class="text-xs text-gray-500 mt-1 font-mono">{{ log.details }}</p>
+        {% endif %}
+        <p class="text-xs text-gray-400 mt-1"><i class="fas fa-network-wired mr-1"></i>{{ log.ip_address }}</p>
+      </div>
+      {% else %}
+      <div class="text-center py-8 text-gray-400">No logs found</div>
+      {% endfor %}
+    </div>
+    
+    <p class="mt-4 text-center text-sm text-gray-500">{{ logs|length }} record(s)</p>
+  </div>
+</body>
+</html>

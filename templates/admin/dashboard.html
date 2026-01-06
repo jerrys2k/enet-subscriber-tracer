@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ENet Intelligence Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="icon" href="/static/favicon.ico">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#0ea5e9',
+            dark: '#0f172a',
+            navy: '#1e293b',
+            enet: '#f7941d',
+            gtt: '#1d4ed8',
+            digicel: '#dc2626',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+    .live-pulse { position: relative; }
+    .live-pulse::before { content: ''; position: absolute; inset: -4px; border-radius: 50%; background: #ef4444; animation: pulse-ring 1.5s ease-out infinite; }
+    .copy-btn:active { transform: scale(0.95); }
+    .data-chip { @apply inline-flex items-center gap-1 bg-slate-100 px-2 py-1 rounded font-mono text-sm cursor-pointer hover:bg-slate-200 transition; }
+    .card { @apply bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden; }
+    .card-header { @apply px-4 py-3 bg-slate-50 border-b border-slate-200 font-semibold flex items-center gap-2; }
+    .card-body { @apply p-4; }
+    .btn { @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all active:scale-95; }
+    .btn-primary { @apply bg-primary text-white hover:bg-sky-600; }
+    .btn-danger { @apply bg-red-500 text-white hover:bg-red-600; }
+    .btn-secondary { @apply bg-slate-100 text-slate-700 hover:bg-slate-200; }
+    .nav-link { @apply flex items-center gap-2 px-4 py-2 rounded-lg text-slate-300 hover:bg-white/10 hover:text-white transition; }
+    .nav-link.active { @apply bg-white/20 text-white; }
+    input[type="text"], input[type="number"] { @apply w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition; }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+  
+  <!-- Header -->
+  <header class="bg-navy text-white sticky top-0 z-50 shadow-lg">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo -->
+        <a href="/admin" class="flex items-center gap-3 hover:opacity-90 transition">
+          <img src="/static/enet_logo.png" alt="ENet" class="h-9 w-auto">
+          <div class="hidden sm:block border-l border-slate-600 pl-3">
+            <div class="font-semibold text-sm leading-tight">Intelligence Portal</div>
+            <div class="text-xs text-slate-400">Law Enforcement</div>
+          </div>
+        </a>
+        
+        <!-- Nav - Desktop -->
+        <nav class="hidden md:flex items-center">
+          <a href="/admin" class="px-4 py-2 text-sm font-medium transition-colors {{ 'text-white bg-white/10 rounded-lg' if not tab or tab == 'lookup' else 'text-slate-300 hover:text-white' }}">
+            Lookup
+          </a>
+          <a href="/admin?tab=live" class="px-4 py-2 text-sm font-medium transition-colors {{ 'text-white bg-white/10 rounded-lg' if tab == 'live' else 'text-slate-300 hover:text-white' }}">
+            Audit Log
+          </a>
+          <a href="/admin?tab=prefix" class="px-4 py-2 text-sm font-medium transition-colors {{ 'text-white bg-white/10 rounded-lg' if tab == 'prefix' else 'text-slate-300 hover:text-white' }}">
+            Prefix
+          </a>
+          <a href="/admin/ept" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors">
+            EPT
+          </a>
+          {% if session.role in ['admin', 'superadmin'] %}
+          <a href="/admin?tab=users" class="px-4 py-2 text-sm font-medium transition-colors {{ 'text-white bg-white/10 rounded-lg' if tab == 'users' else 'text-slate-300 hover:text-white' }}">
+            Users
+          </a>
+          {% endif %}
+        </nav>
+        
+        <!-- User Menu -->
+        <div class="flex items-center gap-4">
+          <div class="hidden sm:flex items-center gap-2">
+            <div class="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
+              <i class="fas fa-user text-primary text-sm"></i>
+            </div>
+            <span class="text-sm font-medium">{{ session.get('username', '') }}</span>
+          </div>
+          <a href="/logout" class="flex items-center gap-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition">
+            <i class="fas fa-sign-out-alt"></i>
+            <span class="hidden sm:inline">Logout</span>
+          </a>
+        </div>
+      </div>
+      
+      <!-- Mobile Nav -->
+      <nav class="md:hidden flex items-center gap-1 pb-3 overflow-x-auto scrollbar-hide">
+        <a href="/admin" class="px-3 py-1.5 text-sm font-medium rounded-lg whitespace-nowrap transition {{ 'bg-white/10 text-white' if not tab or tab == 'lookup' else 'text-slate-400' }}">
+          Lookup
+        </a>
+        <a href="/admin?tab=live" class="px-3 py-1.5 text-sm font-medium rounded-lg whitespace-nowrap transition {{ 'bg-white/10 text-white' if tab == 'live' else 'text-slate-400' }}">
+          Audit
+        </a>
+        <a href="/admin?tab=prefix" class="px-3 py-1.5 text-sm font-medium rounded-lg whitespace-nowrap transition {{ 'bg-white/10 text-white' if tab == 'prefix' else 'text-slate-400' }}">
+          Prefix
+        </a>
+        <a href="/admin/ept" class="px-3 py-1.5 text-sm font-medium rounded-lg whitespace-nowrap text-slate-400">
+          EPT
+        </a>
+        {% if session.role in ['admin', 'superadmin'] %}
+        <a href="/admin?tab=users" class="px-3 py-1.5 text-sm font-medium rounded-lg whitespace-nowrap transition {{ 'bg-white/10 text-white' if tab == 'users' else 'text-slate-400' }}">
+          Users
+        </a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6">
+    
+    {% if not tab or tab == 'lookup' %}
+    <!-- ==================== LOOKUP TAB ==================== -->
+    
+    <!-- Search Section -->
+    <div class="card mb-6">
+      <div class="p-6 sm:p-8">
+        <!-- Tab buttons for search type -->
+        <div class="flex gap-2 mb-4">
+          <button type="button" onclick="showSearchTab('msisdn')" id="tab-msisdn" 
+                  class="px-4 py-2 rounded-lg font-medium transition search-tab active bg-primary text-white">
+            <i class="fas fa-phone-alt"></i> MSISDN
+          </button>
+          <button type="button" onclick="showSearchTab('imei')" id="tab-imei"
+                  class="px-4 py-2 rounded-lg font-medium transition search-tab bg-slate-100 text-slate-600 hover:bg-slate-200">
+            <i class="fas fa-mobile-alt"></i> IMEI
+          </button>
+          <button type="button" onclick="showSearchTab('imsi')" id="tab-imsi"
+                  class="px-4 py-2 rounded-lg font-medium transition search-tab bg-slate-100 text-slate-600 hover:bg-slate-200">
+            <i class="fas fa-sim-card"></i> IMSI
+          </button>
+        </div>
+        
+        <!-- MSISDN Search -->
+        <form method="GET" action="/admin" id="search-msisdn" class="search-form">
+          <div class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+              <div class="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                <i class="fas fa-phone-alt text-primary"></i>
+                <span class="text-slate-500 font-medium">+592</span>
+              </div>
+              <input type="text" name="number" value="{{ number or '' }}" 
+                     placeholder="Enter 7-digit number" 
+                     class="w-full pl-24 pr-4 py-4 text-xl border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition font-mono"
+                     pattern="[0-9]{7}" maxlength="7" inputmode="numeric">
+            </div>
+            <button type="submit" class="btn btn-primary px-8 py-4 text-lg rounded-xl">
+              <i class="fas fa-search"></i>
+              <span>Search</span>
+            </button>
+          </div>
+        </form>
+        
+        <!-- IMEI Search -->
+        <form method="GET" action="/admin" id="search-imei" class="search-form hidden">
+          <div class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+              <div class="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                <i class="fas fa-mobile-alt text-primary"></i>
+              </div>
+              <input type="text" name="imei" value="{{ imei or '' }}" 
+                     placeholder="Enter 15-digit IMEI" 
+                     class="w-full pl-12 pr-4 py-4 text-xl border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition font-mono"
+                     pattern="[0-9]{14,16}" maxlength="16" inputmode="numeric">
+            </div>
+            <button type="submit" class="btn btn-primary px-8 py-4 text-lg rounded-xl">
+              <i class="fas fa-search"></i>
+              <span>Search</span>
+            </button>
+          </div>
+          <p class="text-sm text-slate-500 mt-2"><i class="fas fa-info-circle"></i> Search finds all MSISDNs that have used this device</p>
+        </form>
+        
+        <!-- IMSI Search -->
+        <form method="GET" action="/admin" id="search-imsi" class="search-form hidden">
+          <div class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+              <div class="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                <i class="fas fa-sim-card text-primary"></i>
+              </div>
+              <input type="text" name="imsi" value="{{ imsi or '' }}" 
+                     placeholder="Enter 15-digit IMSI" 
+                     class="w-full pl-12 pr-4 py-4 text-xl border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition font-mono"
+                     pattern="[0-9]{15}" maxlength="15" inputmode="numeric">
+              <input type="hidden" name="lookup_imsi" value="1">
+            </div>
+            <button type="submit" class="btn btn-primary px-8 py-4 text-lg rounded-xl">
+              <i class="fas fa-search"></i>
+              <span>Search</span>
+            </button>
+          </div>
+          <p class="text-sm text-slate-500 mt-2"><i class="fas fa-info-circle"></i> Search by SIM card IMSI number</p>
+        </form>
+      </div>
+    </div>
+    
+    <script>
+    function showSearchTab(type) {
+      // Hide all forms
+      document.querySelectorAll('.search-form').forEach(f => f.classList.add('hidden'));
+      // Remove active from all tabs
+      document.querySelectorAll('.search-tab').forEach(t => {
+        t.classList.remove('bg-primary', 'text-white');
+        t.classList.add('bg-slate-100', 'text-slate-600');
+      });
+      // Show selected form
+      document.getElementById('search-' + type).classList.remove('hidden');
+      // Activate tab
+      const tab = document.getElementById('tab-' + type);
+      tab.classList.remove('bg-slate-100', 'text-slate-600');
+      tab.classList.add('bg-primary', 'text-white');
+      // Focus input
+      document.getElementById('search-' + type).querySelector('input').focus();
+    }
+    
+    // Auto-select tab based on URL params or results
+    document.addEventListener('DOMContentLoaded', function() {
+      {% if imei_search %}
+        showSearchTab('imei');
+      {% elif imsi %}
+        showSearchTab('imsi');
+      {% endif %}
+    });
+    </script>
+
+
+    <!-- IMEI Search Results -->
+    <!-- DEBUG: imei_search={{ imei_search }}, imei_results count={{ imei_results|length if imei_results else 0 }} -->
+    {% if imei_results %}
+    <div class="card mb-6">
+      <div class="card-header">
+        <i class="fas fa-mobile-alt text-primary"></i> IMEI Search Results
+        <span class="ml-auto text-sm font-normal text-slate-500">{{ imei_results|length }} records found for {{ imei_search }}</span>
+      </div>
+      <div class="card-body p-0">
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-slate-50">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">MSISDN</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">IMSI</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">eNodeB</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Cell</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Last Seen</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Action</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+              {% for r in imei_results %}
+              <tr class="hover:bg-slate-50">
+                <td class="px-4 py-3 font-mono font-medium">{{ r.msisdn }}</td>
+                <td class="px-4 py-3 font-mono text-sm">{{ r.imsi or '-' }}</td>
+                <td class="px-4 py-3">{{ r.enodeb_id }}</td>
+                <td class="px-4 py-3">{{ r.cell_id }}</td>
+                <td class="px-4 py-3 text-sm text-slate-500">{{ r.timestamp.strftime("%Y-%m-%d %H:%M") if r.timestamp else '-' }}</td>
+                <td class="px-4 py-3">
+                  <a href="/admin?number={{ r.msisdn[-7:] }}" class="text-primary hover:underline text-sm">
+                    <i class="fas fa-search"></i> Lookup
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if result %}
+    <!-- Results Section -->
+    <div class="space-y-4">
+      
+      <!-- Result Header -->
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <h2 class="text-2xl font-bold text-slate-800">{{ result.number }}</h2>
+          {% if result.source == 'live' %}
+          <span class="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+            <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> NMP Live
+          </span>
+          {% endif %}
+        </div>
+        <div class="flex gap-2">
+          <a href="/generate_pdf?number={{ number }}" class="btn btn-danger text-sm" target="_blank">
+            <i class="fas fa-file-pdf"></i> PDF
+          </a>
+          {% if result.location %}
+          <button onclick="downloadKMZ('{{ number }}')" id="kmz-button" class="btn btn-secondary text-sm">
+            <i class="fas fa-map"></i> KMZ
+          </button>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Live Session Card (if online) -->
+      {% if result.live_session %}
+      <div class="card border-2 border-red-400 bg-red-50">
+        <div class="card-header bg-red-100 text-red-700">
+          <span class="relative flex h-3 w-3">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+          </span>
+          <span class="font-bold">LIVE SESSION</span>
+          
+        </div>
+        <div class="card-body">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Status -->
+            <div>
+              <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Status</div>
+              <div class="flex items-center gap-2">
+                <span class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
+                <span class="font-bold text-green-600">ONLINE</span>
+              </div>
+            </div>
+            
+            <!-- Network -->
+            <div>
+              <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Network</div>
+              <div class="font-semibold text-blue-600">{{ result.live_session.rat_type or 'LTE' }}</div>
+            </div>
+            
+            <!-- Session Duration -->
+            <div>
+              <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Session Duration</div>
+              <div class="font-semibold text-purple-600">{{ result.live_session.session_duration or 'N/A' }}</div>
+            </div>
+            
+            <!-- IP Address -->
+            <div>
+              <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">IP Address</div>
+              <div class="data-chip" onclick="copyToClipboard('{{ result.live_session.ip_address }}')">
+                {{ result.live_session.ip_address }}
+                <i class="fas fa-copy text-slate-400"></i>
+              </div>
+            </div>
+            
+            <!-- IMSI -->
+            <div>
+              <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">IMSI</div>
+              <div class="data-chip" onclick="copyToClipboard('{{ result.live_session.imsi }}')">
+                {{ result.live_session.imsi }}
+                <i class="fas fa-copy text-slate-400"></i>
+              </div>
+            </div>
+            
+            <!-- IMEI -->
+            <div>
+              <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">IMEI</div>
+              <div class="data-chip" onclick="copyToClipboard('{{ result.live_session.imei }}')">
+                {{ result.live_session.imei }}
+                <i class="fas fa-copy text-slate-400"></i>
+              </div>
+            </div>
+            
+            <!-- Device -->
+            {% if result.live_session.device_vendor %}
+            <div>
+              <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Device</div>
+              <div class="font-semibold">{{ result.live_session.device_vendor }} {{ result.live_session.device_name }}</div>
+            </div>
+            {% endif %}
+            
+            <!-- Session Start -->
+            <div>
+              <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Session Start</div>
+              <div class="font-medium">{{ result.live_session.session_start_formatted or result.live_session.session_start }}</div>
+            </div>
+            
+            <!-- TAC -->
+            <div>
+              <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">TAC</div>
+              <div class="font-medium">{{ result.live_session.tac or 'N/A' }}</div>
+            </div>
+          </div>
+          
+          <!-- Location Info -->
+          {% if result.live_session.cell_details %}
+          <div class="mt-4 pt-4 border-t border-red-200">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Site</div>
+                <div class="font-semibold">{{ result.live_session.cell_details.enodeb_name }}</div>
+              </div>
+              <div>
+                <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Cell</div>
+                <div class="font-medium">{{ result.live_session.enodeb_id }} / {{ result.live_session.cell_id }}</div>
+              </div>
+              <div>
+                <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Azimuth</div>
+                <div class="font-medium">{{ result.live_session.cell_details.azimuth }}° ({{ result.live_session.azimuth_direction }})</div>
+              </div>
+              <div>
+                <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Technology</div>
+                <div class="font-medium">{{ result.live_session.cell_details.technology }}</div>
+              </div>
+            </div>
+            
+            <!-- Map Buttons -->
+            <div class="flex flex-wrap gap-2 mt-4">
+              <a href="https://www.google.com/maps?q={{ result.live_session.cell_details.latitude }},{{ result.live_session.cell_details.longitude }}&z=18" 
+                 target="_blank" class="btn btn-danger text-sm">
+                <i class="fas fa-map-marker-alt"></i> Google Maps
+              </a>
+              <button onclick="toggleSectorMap()" class="btn btn-primary text-sm">
+                <i class="fas fa-broadcast-tower"></i> Show Cell Sector
+              </button>
+            </div>
+            
+            <!-- Sector Map -->
+            <div id="sectorMapContainer" class="hidden mt-4">
+              <div id="sectorMap" class="h-80 w-full rounded-lg border-2 border-slate-300"></div>
+            </div>
+          </div>
+          {% else %}
+          <!-- No cell details - show basic site info -->
+          <div class="mt-4 pt-4 border-t border-red-200">
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Site</div>
+                <div class="font-semibold">{{ result.live_session.site_name }}</div>
+              </div>
+              <div>
+                <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">eNodeB / Cell</div>
+                <div class="font-medium">{{ result.live_session.enodeb_id }} / {{ result.live_session.cell_id }}</div>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+          
+          {% if result.live_session.is_roaming %}
+          <div class="mt-4 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
+            <i class="fas fa-exclamation-triangle text-yellow-600"></i>
+            <span class="font-semibold text-yellow-700">ROAMING DETECTED</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+      
+      <!-- Customer Info Card -->
+      {% if result.customer_info %}
+      <div class="card">
+        <div class="card-header">
+          <i class="fas fa-user text-primary"></i> Customer Information
+        </div>
+        <div class="card-body">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Name</div>
+              <div class="font-semibold text-lg">{{ result.customer_info.name or 'N/A' }}</div>
+            </div>
+            <div>
+              <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Address</div>
+              <div class="font-medium">{{ result.customer_info.address or 'N/A' }}</div>
+            </div>
+            {% if result.customer_info.email %}
+            <div>
+              <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Email</div>
+              <div class="font-medium">{{ result.customer_info.email }}</div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      
+      <!-- Porting History Card -->
+      {% if result.has_port_history or result.current_provider %}
+      <div class="card">
+        <div class="card-header">
+          <i class="fas fa-exchange-alt text-primary"></i> Porting Information
+        </div>
+        <div class="card-body">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Original Provider</div>
+              <div class="font-semibold">
+                {% if result.original_provider.lower() == 'gtt' %}
+                  <span class="text-blue-600">GTT</span>
+                {% elif result.original_provider.lower() == 'digicel' %}
+                  <span class="text-red-600">Digicel</span>
+                {% elif result.original_provider.lower() == 'enet' %}
+                  <span class="text-orange-500">ENet</span>
+                {% else %}
+                  {{ result.original_provider }}
+                {% endif %}
+              </div>
+            </div>
+            <div>
+              <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Current Provider</div>
+              <div class="font-semibold">
+                {% if result.current_provider.lower() == 'gtt' %}
+                  <span class="text-blue-600">GTT</span>
+                {% elif result.current_provider.lower() == 'digicel' %}
+                  <span class="text-red-600">Digicel</span>
+                {% elif result.current_provider.lower() == 'enet' %}
+                  <span class="text-orange-500">ENet</span>
+                {% else %}
+                  {{ result.current_provider }}
+                {% endif %}
+              </div>
+            </div>
+            {% if result.porting_history.date != 'None' %}
+            <div>
+              <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Port Date</div>
+              <div class="font-medium">{{ result.porting_history.date }}</div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      
+      <!-- Historical Location (only if no live session) -->
+      {% if result.location and not result.live_session %}
+      <div class="card">
+        <div class="card-header">
+          <i class="fas fa-map-marker-alt text-primary"></i> Last Known Location
+          <span class="ml-auto text-sm font-normal text-slate-500">From RADIUS</span>
+        </div>
+        <div class="card-body">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div>
+              <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Tower</div>
+              <div class="font-semibold">{{ result.location.tower or result.location.tower_name }}</div>
+            </div>
+            <div>
+              <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">eNodeB / Cell</div>
+              <div class="font-medium">{{ result.location.enodeb_id }} / {{ result.location.cell_id }}</div>
+            </div>
+            <div>
+              <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Coordinates</div>
+              <div class="font-mono text-sm">{{ "%.6f"|format(result.location.lat) }}, {{ "%.6f"|format(result.location.lon) }}</div>
+            </div>
+            <div>
+              <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Time</div>
+              <div class="font-medium">{{ result.location.timestamp }}</div>
+            </div>
+          </div>
+          <div class="flex gap-2 mt-4">
+            <a href="https://www.google.com/maps?q={{ result.location.lat }},{{ result.location.lon }}&z=17" 
+               target="_blank" class="btn btn-primary text-sm">
+              <i class="fas fa-map-marker-alt"></i> View on Map
+            </a>
+            <button onclick="downloadKMZ('{{ number }}')" class="btn btn-secondary text-sm">
+              <i class="fas fa-download"></i> Download KMZ
+            </button>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      
+    </div>
+    {% endif %}
+
+    {% elif tab == 'live' %}
+    <!-- ==================== AUDIT LOG TAB ==================== -->
+    <div class="card">
+      <div class="card-header">
+        <i class="fas fa-history text-primary"></i> Audit Log - Lookup History
+        <button onclick="location.reload()" class="ml-auto btn btn-secondary text-sm">
+          <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+      </div>
+      <div class="card-body p-0">
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-slate-50">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Time</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">User</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">MSISDN</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">From</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">To</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Action</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+              {% for log in viewer_logs[:100] %}
+              <tr class="hover:bg-slate-50">
+                <td class="px-4 py-3 text-sm text-slate-500">{{ (log.timestamp - timedelta(hours=4)).strftime("%Y-%m-%d %H:%M") if log.timestamp else "" }}</td>
+                <td class="px-4 py-3 font-medium">{{ log.username }}</td>
+                <td class="px-4 py-3 font-mono">{{ log.number }}</td>
+                <td class="px-4 py-3">
+                  {% if log.from_provider and log.from_provider.lower() == 'gtt' %}
+                    <span class="text-blue-600 font-medium">GTT</span>
+                  {% elif log.from_provider and log.from_provider.lower() == 'digicel' %}
+                    <span class="text-red-600 font-medium">Digicel</span>
+                  {% elif log.from_provider and log.from_provider.lower() in ['enet', 'entg'] %}
+                    <span class="text-orange-500 font-medium">ENet</span>
+                  {% else %}
+                    {{ log.from_provider or '-' }}
+                  {% endif %}
+                </td>
+                <td class="px-4 py-3">
+                  {% if log.to_provider and log.to_provider.lower() == 'gtt' %}
+                    <span class="text-blue-600 font-medium">GTT</span>
+                  {% elif log.to_provider and log.to_provider.lower() == 'digicel' %}
+                    <span class="text-red-600 font-medium">Digicel</span>
+                  {% elif log.to_provider and log.to_provider.lower() in ['enet', 'entg'] %}
+                    <span class="text-orange-500 font-medium">ENet</span>
+                  {% else %}
+                    {{ log.to_provider or '-' }}
+                  {% endif %}
+                </td>
+                <td class="px-4 py-3">
+                  <a href="/admin?number={{ log.number[-7:] if log.number|length > 7 else log.number }}" class="text-primary hover:underline text-sm">
+                    <i class="fas fa-search"></i> View
+                  </a>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="6" class="px-4 py-8 text-center text-slate-500">
+                  <i class="fas fa-inbox text-3xl mb-2"></i>
+                  <p>No audit logs yet. Lookups will appear here.</p>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    {% elif tab == 'prefix' %}
+    <!-- ==================== PREFIX TAB ==================== -->
+    <div class="card">
+      <div class="card-header">
+        <i class="fas fa-list-ol text-primary"></i> Prefix Lookup
+      </div>
+      <div class="card-body">
+        <form method="GET" action="/admin" class="flex gap-2 mb-6">
+          <input type="hidden" name="tab" value="prefix">
+          <input type="text" name="prefix" value="{{ prefix or '' }}" placeholder="Enter prefix (e.g. 592711)" class="flex-1">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-search"></i> Search
+          </button>
+        </form>
+        
+        {% if prefix_result %}
+        <div class="p-4 bg-slate-50 rounded-lg">
+          <p><strong>Prefix:</strong> {{ prefix }}</p>
+          <p><strong>Provider:</strong> {{ prefix_result }}</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% elif tab == 'metrics' %}
+    <!-- ==================== METRICS TAB ==================== -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="card">
+        <div class="card-body text-center">
+          <div class="text-3xl font-bold text-primary">{{ dashboard_stats.total_subscribers if dashboard_stats else 0 }}</div>
+          <div class="text-sm text-slate-500">Total Subscribers</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body text-center">
+          <div class="text-3xl font-bold text-green-600">{{ dashboard_stats.porting_activity.today if dashboard_stats and dashboard_stats.porting_activity else 0 }}</div>
+          <div class="text-sm text-slate-500">Ports Today</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body text-center">
+          <div class="text-3xl font-bold text-blue-600">{{ dashboard_stats.porting_activity.this_week if dashboard_stats and dashboard_stats.porting_activity else 0 }}</div>
+          <div class="text-sm text-slate-500">Ports This Week</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body text-center">
+          <div class="text-3xl font-bold text-purple-600">{{ dashboard_stats.porting_activity.this_month if dashboard_stats and dashboard_stats.porting_activity else 0 }}</div>
+          <div class="text-sm text-slate-500">Ports This Month</div>
+        </div>
+      </div>
+    </div>
+
+    {% elif tab == 'users' %}
+    <!-- ==================== USERS TAB ==================== -->
+    
+    <!-- Add User Card -->
+    <div class="card mb-6">
+      <div class="card-header">
+        <i class="fas fa-user-plus text-primary"></i> Add New User
+      </div>
+      <div class="card-body">
+        <form method="POST" action="/users/add" class="space-y-4">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Username</label>
+              <input type="text" name="username" required minlength="3" placeholder="Enter username"
+                     class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+              <div class="flex gap-2">
+                <input type="text" name="password" id="newPassword" required minlength="8" placeholder="Min 8 chars"
+                       class="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary font-mono">
+                <button type="button" onclick="generatePassword()" class="btn btn-secondary px-3" title="Generate">
+                  <i class="fas fa-random"></i>
+                </button>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Role</label>
+              <select name="role" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary">
+                <option value="viewer">Viewer</option>
+                <option value="admin">Admin</option>
+                {% if session.role == 'superadmin' %}
+                <option value="superadmin">Super Admin</option>
+                {% endif %}
+              </select>
+            </div>
+            <div class="flex items-end">
+              <button type="submit" class="btn btn-primary w-full">
+                <i class="fas fa-plus"></i> Add User
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Users List -->
+    <div class="card">
+      <div class="card-header">
+        <i class="fas fa-users text-primary"></i> User Accounts
+        <span class="ml-auto text-sm font-normal text-slate-500">{{ users|length }} users</span>
+      </div>
+      <div class="card-body p-0">
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-slate-50">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Username</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Role</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Status</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Last Login</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+              {% for user in users %}
+              <tr class="hover:bg-slate-50">
+                <td class="px-4 py-3">
+                  <div class="font-medium">{{ user.username }}</div>
+                </td>
+                <td class="px-4 py-3">
+                  <span class="px-2 py-1 rounded-full text-xs font-medium
+                    {% if user.role == 'superadmin' %}bg-purple-100 text-purple-700
+                    {% elif user.role == 'admin' %}bg-blue-100 text-blue-700
+                    {% else %}bg-slate-100 text-slate-700{% endif %}">
+                    {{ user.role }}
+                  </span>
+                </td>
+                <td class="px-4 py-3">
+                  {% if user.locked_until %}
+                  <span class="inline-flex items-center gap-1 text-red-600">
+                    <i class="fas fa-lock"></i> Locked
+                  </span>
+                  {% elif user.enabled == 0 %}
+                  <span class="inline-flex items-center gap-1 text-slate-500">
+                    <i class="fas fa-ban"></i> Disabled
+                  </span>
+                  {% else %}
+                  <span class="inline-flex items-center gap-1 text-green-600">
+                    <i class="fas fa-check-circle"></i> Active
+                  </span>
+                  {% endif %}
+                </td>
+                <td class="px-4 py-3 text-sm text-slate-500">
+                  {{ user.last_login or 'Never' }}
+                </td>
+                <td class="px-4 py-3">
+                  <div class="flex flex-wrap gap-1">
+                    <!-- Reset Password -->
+                    <form method="POST" action="/users/reset/{{ user.username }}" class="inline" 
+                          onsubmit="return confirm('Reset password for {{ user.username }}?')">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button type="submit" class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200" title="Reset Password">
+                        <i class="fas fa-key"></i>
+                      </button>
+                    </form>
+                    
+                    <!-- Toggle Enable/Disable -->
+                    {% if user.username != session.get('username') %}
+                    <form method="POST" action="/users/toggle/{{ user.username }}" class="inline">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button type="submit" class="px-2 py-1 text-xs rounded hover:opacity-80
+                        {% if user.enabled %}bg-yellow-100 text-yellow-700{% else %}bg-green-100 text-green-700{% endif %}" 
+                        title="{% if user.enabled %}Disable{% else %}Enable{% endif %}">
+                        <i class="fas fa-{% if user.enabled %}ban{% else %}check{% endif %}"></i>
+                      </button>
+                    </form>
+                    {% endif %}
+                    
+                    <!-- Unlock if locked -->
+                    {% if user.locked_until %}
+                    <form method="POST" action="/users/unlock/{{ user.username }}" class="inline">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button type="submit" class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200" title="Unlock">
+                        <i class="fas fa-unlock"></i>
+                      </button>
+                    </form>
+                    {% endif %}
+                    
+                    <!-- Delete -->
+                    {% if user.username not in ['admin', 'superadmin'] and user.username != session.get('username') %}
+                    <form method="POST" action="/users/delete/{{ user.username }}" class="inline"
+                          onsubmit="return confirm('Delete user {{ user.username }}? This cannot be undone.')">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button type="submit" class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200" title="Delete">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </form>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="5" class="px-4 py-8 text-center text-slate-500">
+                  No users found.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Password Generator Script -->
+    <script>
+      function generatePassword() {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
+        let password = '';
+        for (let i = 0; i < 16; i++) {
+          password += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        document.getElementById('newPassword').value = password;
+      }
+    </script>
+    {% endif %}
+
+  </main>
+
+  <!-- Scripts -->
+  <script>
+    // Copy to clipboard
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        // Show feedback
+        const toast = document.createElement('div');
+        toast.className = 'fixed bottom-4 right-4 bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+        toast.textContent = 'Copied: ' + text;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+      });
+    }
+
+    // KMZ Download
+    function downloadKMZ(number) {
+      const button = document.getElementById('kmz-button');
+      if (!button) return;
+      const originalText = button.innerHTML;
+      button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Downloading...';
+      button.disabled = true;
+
+      fetch(`/export_kmz?number=${number}`)
+        .then(response => response.blob())
+        .then(blob => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `trace_${number}.kmz`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        })
+        .catch(error => alert('Failed to download KMZ'))
+        .finally(() => {
+          button.innerHTML = originalText;
+          button.disabled = false;
+        });
+    }
+
+    // Sector Map
+    var sectorMapInit = false;
+    var sectorMap = null;
+    
+    function toggleSectorMap() {
+      var container = document.getElementById('sectorMapContainer');
+      if (!container) return;
+      container.classList.toggle('hidden');
+      
+      {% if result and result.live_session and result.live_session.cell_details %}
+      if (!sectorMapInit && !container.classList.contains('hidden')) {
+        initSectorMap(
+          {{ result.live_session.cell_details.latitude }},
+          {{ result.live_session.cell_details.longitude }},
+          {{ result.live_session.cell_details.azimuth or 0 }},
+          "{{ result.live_session.cell_details.cell_name }}",
+          "{{ result.live_session.cell_details.technology }}"
+        );
+        sectorMapInit = true;
+      }
+      {% endif %}
+    }
+    
+    function initSectorMap(lat, lon, azimuth, cellName, tech) {
+      sectorMap = L.map('sectorMap').setView([lat, lon], 16);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+      }).addTo(sectorMap);
+      
+      // Tower marker
+      var towerIcon = L.divIcon({
+        html: '<div style="background:#ef4444;color:white;padding:4px 8px;border-radius:4px;font-size:10px;white-space:nowrap;box-shadow:0 2px 4px rgba(0,0,0,0.2);"><i class="fas fa-broadcast-tower"></i> ' + cellName + '</div>',
+        className: '',
+        iconAnchor: [50, 10]
+      });
+      L.marker([lat, lon], {icon: towerIcon}).addTo(sectorMap);
+      
+      // Draw sector
+      var beamWidth = 65;
+      var radius = 800;
+      var startAngle = azimuth - beamWidth/2;
+      var endAngle = azimuth + beamWidth/2;
+      
+      var points = [[lat, lon]];
+      for (var angle = startAngle; angle <= endAngle; angle += 5) {
+        var rad = angle * Math.PI / 180;
+        var dLat = (radius/111320) * Math.cos(rad);
+        var dLon = (radius/(111320*Math.cos(lat*Math.PI/180))) * Math.sin(rad);
+        points.push([lat + dLat, lon + dLon]);
+      }
+      points.push([lat, lon]);
+      
+      L.polygon(points, {
+        color: '#ef4444',
+        fillColor: '#ef4444',
+        fillOpacity: 0.3,
+        weight: 2
+      }).addTo(sectorMap);
+      
+      // Legend
+      var legend = L.control({position: 'bottomright'});
+      legend.onAdd = function(map) {
+        var div = L.DomUtil.create('div');
+        div.innerHTML = '<div style="background:white;padding:8px;border-radius:4px;font-size:11px;box-shadow:0 2px 4px rgba(0,0,0,0.2);">' +
+          '<strong>📡 ' + cellName + '</strong><br>' +
+          '<span style="color:#666;">' + tech + '</span><br>' +
+          '<span style="color:#ef4444;">■</span> Coverage (~800m)<br>' +
+          'Azimuth: ' + azimuth + '°' +
+          '</div>';
+        return div;
+      };
+      legend.addTo(sectorMap);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+# Environment
+.env
+venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Logs
+logs/*.log
+
+# Data caches
+data/*.pkl
+
+# Database
+*.db
+
+# Backups
+*.bak
+*.bak_*
+*.backup*
+*.old
+
+# IDE
+.vscode/
+.idea/
+
+# Secrets
+secrets/

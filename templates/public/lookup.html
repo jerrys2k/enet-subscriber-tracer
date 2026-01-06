@@ -1,0 +1,67 @@
+<!-- templates/public/lookup.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ENet Number Lookup</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            enet: '#f7941d',
+            gtt: '#1d4ed8',
+            digicel: '#dc2626'
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-gray-50">
+  <div class="min-h-screen flex flex-col">
+    <header class="bg-enet text-white shadow-md">
+      <div class="container mx-auto px-4 py-4 flex items-center">
+        <img src="{{ url_for('static', filename='enet_logo.png') }}" alt="ENet Logo" class="h-10 mr-3">
+        <h1 class="text-xl font-bold">Number Lookup Portal</h1>
+      </div>
+    </header>
+
+    <main class="flex-grow container mx-auto px-4 py-8">
+      <div class="max-w-lg mx-auto bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="p-6">
+          <form method="GET" action="/check" class="space-y-4">
+            <div>
+              <label for="number" class="block text-sm font-medium text-gray-700 mb-1">
+                Enter 7-digit number
+              </label>
+              <div class="flex">
+                <input type="text" id="number" name="number" 
+                       class="flex-grow px-4 py-2 border rounded-l focus:ring-2 focus:ring-enet focus:border-enet"
+                       placeholder="592XXXXXX" pattern="\d{7}" maxlength="7" required>
+                <button type="submit" 
+                        class="bg-enet hover:bg-orange-600 text-white px-4 py-2 rounded-r font-medium">
+                  <i class="fas fa-search mr-2"></i> Lookup
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        {% if result %}
+        <div class="border-t border-gray-200 p-6 space-y-6">
+          <!-- Results sections here -->
+        </div>
+        {% endif %}
+      </div>
+    </main>
+
+    <footer class="bg-gray-100 py-4 text-center text-sm text-gray-600">
+      &copy; {{ now.year }} ENet. All rights reserved.
+    </footer>
+  </div>
+</body>
+</html>

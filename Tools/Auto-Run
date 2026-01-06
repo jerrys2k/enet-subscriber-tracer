@@ -1,0 +1,13 @@
+[Unit]
+Description=RADIUS Real-Time Log Watcher
+After=network.target
+
+[Service]
+User=enet
+WorkingDirectory=/home/enet/msisdn_checker
+ExecStart=/home/enet/msisdn_checker/venv/bin/python Tools/radius_watcher.py
+Environment=PYTHONPATH=.
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

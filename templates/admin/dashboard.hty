@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ENet Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="/static/favicon.ico">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            enet: '#f7941d',
+            gtt: '#1d4ed8',
+            digicel: '#dc2626',
+            inactive: '#6b7280'
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-gray-100 text-gray-800">
+  <header class="bg-orange-500 shadow p-4 flex items-center justify-between">
+    <div class="flex items-center">
+      <img src="{{ url_for('static', filename='enet_logo.png') }}" alt="ENet Logo" class="h-10 mr-3">
+      <h1 class="text-xl font-bold text-white">ENet Dashboard</h1>
+    </div>
+    <div class="flex items-center gap-3">
+      {% if session['role'] == 'admin' %}
+        <span class="bg-white text-orange-600 text-sm font-semibold px-3 py-1 rounded-full">Admin</span>
+      {% elif session['role'] == 'viewer' %}
+        <span class="bg-white text-blue-600 text-sm font-semibold px-3 py-1 rounded-full">Viewer</span>
+      {% endif %}
+      <a href="/logout" class="text-white text-sm font-semibold hover:underline">
+        <i class="fas fa-sign-out-alt mr-1"></i> Logout
+      </a>
+    </div>
+  </header>
+
+  <nav class="bg-orange-400 flex justify-around text-white font-semibold py-3">
+  <a href="/admin?tab=lookup" class="hover:bg-orange-500 px-4 py-2 rounded {% if tab == 'lookup' %}bg-orange-600{% endif %}">🔍 Lookup</a>
+  <a href="/admin?tab=upload" class="hover:bg-orange-500 px-4 py-2 rounded {% if tab == 'upload' %}bg-orange-600{% endif %}">📥 Upload</a>
+  <a href="/admin?tab=live" class="hover:bg-orange-500 px-4 py-2 rounded {% if tab == 'live' %}bg-orange-600{% endif %}">⚡ Live NMP</a>
+  <a href="/admin?tab=metrics" class="hover:bg-orange-500 px-4 py-2 rounded {% if tab == 'metrics' %}bg-orange-600{% endif %}">📊 Metrics</a>
+</nav>
+
+<main class="max-w-3xl mx-auto mt-10 p-6 bg-white shadow-xl rounded-lg">
+  {% if tab == 'lookup' and result %}
+    <div class="mb-6 border-l-4 pl-4 {% if result.provider_info.current == 'ENet' %}border-enet{% elif result.provider_info.current == 'GTT' %}border-gtt{% elif result.provider_info.current == 'Digicel' %}border-digicel{% else %}border-gray-400{% endif %}">
+      <h2 class="text-lg font-bold">
+        MSISDN:
+        <span class="text-xl font-extrabold {% if result.provider_info.current == 'ENet' %}text-enet{% elif result.provider_info.current == 'GTT' %}text-gtt{% elif result.provider_info.current == 'Digicel' %}text-digicel{% else %}text-gray-600{% endif %}">{{ result.number }}</span>
+      </h2>
+    </div>
+  {% endif %}
+    {% if tab == 'lookup' %}
+  <form method="GET" action="/check" class="mb-6">
+    <label for="number" class="block text-sm font-medium text-gray-700 mb-1">Enter 7-digit number</label>
+    <input type="text" name="number" maxlength="7" required class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-orange-400">
+    <button type="submit" class="w-full mt-3 bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 rounded">Check</button>
+  </form>
+  {% if result %}
+    <div class="space-y-6">
+      <div class="bg-gray-50 p-4 rounded shadow">
+        <h3 class="font-semibold text-lg mb-2"><i class="fas fa-user"></i> Customer Info</h3>
+        <p><strong>Name:</strong> {{ result.customer_info.first_name }} {{ result.customer_info.last_name }}</p>
+        <p><strong>Email:</strong> {{ result.customer_info.email }}</p>
+        <p><strong>Address:</strong> {{ result.customer_info.address }}</p>
+      </div>
+      <div class="bg-gray-50 p-4 rounded shadow">
+        <h3 class="font-semibold text-lg mb-2"><i class="fas fa-box"></i> Porting History</h3>
+        <p>
+  <strong>From:</strong>
+  <span class="{% if result.porting_history.from == 'GTT' %}text-gtt{% elif result.porting_history.from == 'ENet' %}text-enet{% elif result.porting_history.from == 'Digicel' %}text-digicel{% else %}text-gray-600{% endif %} font-semibold">
+    {% if result.porting_history.from == 'ENET' %}ENet{% else %}{{ result.porting_history.from }}{% endif %}
+  </span>
+  →
+  <strong>To:</strong>
+  <span class="{% if result.porting_history.to == 'GTT' %}text-gtt{% elif result.porting_history.to == 'ENet' %}text-enet{% elif result.porting_history.to == 'Digicel' %}text-digicel{% else %}text-gray-600{% endif %} font-semibold">
+    {% if result.porting_history.to == 'ENet' %}ENet{% else %}{{ result.porting_history.to }}{% endif %}
+  </span>
+</p>
+        <p><strong>Date:</strong> {{ result.porting_history.date }}</p>
+        <p><strong>Source:</strong> {{ result.porting_history.source }}</p>
+      </div>
+      <div class="bg-gray-50 p-4 rounded shadow">
+        <h3 class="font-semibold text-lg mb-2"><i class="fas fa-map-marker-alt"></i> Provider Info</h3>
+        <p><strong>Original:</strong> <span class="{% if result.provider_info.original == 'GTT' %}text-gtt{% elif result.provider_info.original == 'ENet' %}text-enet{% elif result.provider_info.original == 'Digicel' %}text-digicel{% else %}text-gray-600{% endif %}">{{ result.provider_info.original }}</span></p>
+        <p><strong>Current:</strong> <span class="{% if result.provider_info.current == 'GTT' %}text-gtt{% elif result.provider_info.current == 'ENet' %}text-enet{% elif result.provider_info.current == 'Digicel' %}text-digicel{% else %}text-gray-600{% endif %}">{{ result.provider_info.current }}</span></p>
+      </div>
+    </div>
+  {% endif %}
+{% elif tab == 'upload' %}
+  <form method="POST" action="/admin/upload" enctype="multipart/form-data" class="space-y-4">
+    <label class="block text-sm font-medium text-gray-700">Upload Excel File</label>
+    <input type="file" name="file" accept=".xlsx" class="w-full border px-4 py-2 rounded">
+    <button type="submit" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded font-semibold">Upload</button>
+  </form>
+{% elif tab == 'metrics' %}
+  <div class="bg-gray-50 p-4 rounded shadow">
+    <h3 class="font-semibold text-lg mb-2"><i class="fas fa-chart-line"></i> Dashboard Metrics</h3>
+    {% if dashboard_stats %}
+      <p class="text-sm">Total Records: {{ dashboard_stats.metadata.total_records }}</p>
+      <p class="text-sm">Date Range: {{ dashboard_stats.metadata.date_range.min }} → {{ dashboard_stats.metadata.date_range.max }}</p>
+      <p class="text-sm">Cache Age: {{ dashboard_stats.metadata.cache_age }} minutes</p>
+    {% else %}
+      <p>No stats available.</p>
+    {% endif %}
+  </div>
+{% else %}
+  <p class="text-center text-gray-500">Select a tab to begin.</p>
+{% endif %}
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+</body>
+</html>
+
